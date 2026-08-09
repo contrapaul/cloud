@@ -20,16 +20,27 @@
   .stage {
     flex: 1; min-height: 0; overflow: hidden;
     display: flex; align-items: center; justify-content: center;
-    padding: 2vh 3vw;
+    /* Top padding reserves room for the controls, so a full cloud pushes the
+       question up against them rather than underneath them. */
+    padding: 2.9rem 3vw 2vh;
   }
   .stage-inner { width: 100%; text-align: center; }
 
+  /* The display font, same as every other page. It was body font here, which
+     left the projector as the one screen not looking like the rest of the
+     site. Scaled to the viewport width and held to a single line: a question
+     that wraps eats the room the cloud needs, and shifts everything down the
+     moment somebody uses a longer one. */
   #question {
-    font-size: clamp(1rem, 2.2vw, 2rem);
-    color: var(--wc-muted);
-    font-family: var(--wc-body);
-    font-weight: 600;
-    margin-bottom: 2vh;
+    font-family: var(--wc-display);
+    font-weight: 800;
+    font-size: clamp(1.1rem, 2.6vw, 2.4rem);
+    color: var(--wc-text);
+    margin: 0 0 2vh;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
   }
 
   /* --fit is set by the script, which grows the type until the cloud fills
@@ -56,12 +67,29 @@
   }
   .stage .field.words .bubble .n { opacity: 0.45; font-size: 0.45em; }
 
+  /* Three columns so the toggle sits dead centre regardless of how wide the
+     join details or the tally happen to be. */
   .foot {
-    display: flex; align-items: center; gap: 2vw;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 2vw;
     padding: 1.2vh 3vw;
     border-top: 1px solid var(--wc-line);
     background: var(--wc-bg-2);
   }
+  /* No min-width:0 here on purpose. The column has to grow to whatever the
+     join details need, because a wrapped join code is unreadable and a
+     wrapped one at big cloud size is nonsense. */
+  .foot-join { display: flex; align-items: center; gap: 1.5vw; }
+  .foot-mid { justify-self: center; }
+  .foot-mid button {
+    background: transparent; border: 1px solid var(--wc-line); color: var(--wc-muted);
+    border-radius: var(--wc-r); padding: 0.4rem 0.8rem;
+    font: inherit; font-size: 0.8rem; cursor: pointer; opacity: 0.5; white-space: nowrap;
+  }
+  .foot-mid button:hover, .foot-mid button:focus-visible { opacity: 1; }
+
   .foot .qr {
     width: clamp(64px, 9vh, 132px);
     height: clamp(64px, 9vh, 132px);
@@ -71,25 +99,70 @@
     flex: 0 0 auto;
   }
   .foot .qr svg { display: block; width: 100%; height: 100%; }
-  .join-label { font-size: clamp(0.75rem, 1.2vw, 1.1rem); color: var(--wc-muted); }
-  .foot .code { font-size: clamp(1.5rem, 3.6vw, 3.25rem); line-height: 1.1; }
-  .tally { margin-left: auto; text-align: right; font-size: clamp(0.9rem, 1.6vw, 1.5rem); color: var(--wc-muted); }
-  .tally b { display: block; font-family: var(--wc-num); color: var(--wc-text); font-size: 1.6em; }
+  .join-label { font-size: clamp(0.75rem, 1.2vw, 1.1rem); color: var(--wc-muted); white-space: nowrap; }
+  .foot .code { font-size: clamp(1.5rem, 3.6vw, 3.25rem); line-height: 1.1; white-space: nowrap; }
 
-  /* Deliberately faint. Somebody at the laptop can find it, and it stays out
-     of the way of the thing the room is looking at. */
-  .skin {
+  /* Count and unit on the same line, one line each, so it reads as "26
+     people" and "29 ideas" rather than a bare number above a run on phrase. */
+  .tally {
+    justify-self: end; text-align: right;
+    font-size: clamp(0.9rem, 1.6vw, 1.5rem); color: var(--wc-muted);
+    line-height: 1.15;
+  }
+  .tally b { font-family: var(--wc-num); color: var(--wc-text); font-size: 1.4em; }
+
+  /* ── Big cloud ──
+     For a hall where the back row cannot read a normal join code. The bar
+     moves to the top, where nothing else competes with it, and everything on
+     it grows: the QR and code by about two and a half times, the live counts
+     by three. The cloud keeps whatever room is left, and refits itself. */
+  body.big { flex-direction: column-reverse; }
+  body.big .foot { border-top: 0; border-bottom: 1px solid var(--wc-line); padding: 2vh 3vw; }
+  /* The vw and vh terms carry the intended multiples on a projector: at
+     1920x1080 the code lands near 128px against 52px normally, the QR near
+     237px against 97px, and the tally at 72px against 24px. The floors are
+     kept low so a laptop window shrinks these rather than shoving the live
+     counts off the side of the screen. */
+  /* Sized against BOTH axes, with no fixed floor. A floor in rem cannot shrink
+     when the window is narrow, which pushed the live counts clean off the
+     right edge. Taking the smaller of a width and a height measure means the
+     bar always fits whatever it is shown on, and on a 1920x1080 projector it
+     lands on the intended multiples: QR about 237px against 97px normally,
+     the code about 118px against 52px, the counts about 65px against 24px. */
+  body.big .foot .qr { width: min(22.5vh, 15vw); height: min(22.5vh, 15vw); }
+  body.big .join-label { font-size: min(2.4vw, 3vh); }
+  body.big .foot .code { font-size: min(9vw, 12vh); }
+  body.big .tally { font-size: min(5vw, 6.8vh); }
+  /* The controls move to the bottom, since the bar now occupies the top, and
+     the stage flips its reserved padding to match so the last row of the
+     cloud never sits under them. */
+  body.big .controls { top: auto; bottom: 0.6rem; }
+  body.big .stage { padding: 2vh 3vw 2.9rem; }
+
+  /* Deliberately faint. Somebody at the laptop can find them, and they stay
+     out of the way of the thing the room is looking at. */
+  .controls {
     position: fixed; top: 0.6rem; right: 0.8rem;
+    display: flex; gap: 0.4rem; z-index: var(--z-sticky);
+  }
+  .controls > * {
     background: transparent; border: 1px solid var(--wc-line); color: var(--wc-muted);
     border-radius: var(--wc-r); padding: 0.3rem 0.6rem;
     font: inherit; font-size: 0.75rem; cursor: pointer; opacity: 0.35;
+    text-decoration: none; line-height: 1.4;
   }
-  .skin:hover, .skin:focus-visible { opacity: 1; }
+  .controls > *:hover, .controls > *:focus-visible { opacity: 1; }
 </style>
 </head>
 <body>
 
-<button type="button" class="skin" id="skin">Words</button>
+<div class="controls">
+  <button type="button" id="skin">Words</button>
+  <!-- The way back. Without this the only exit from the projector view is
+       editing the address bar, which is not something to be doing in front of
+       a hall. -->
+  <a id="back" href="#">Back to the cloud</a>
+</div>
 
 <div class="stage" id="stage">
   <div class="stage-inner" id="stage-inner">
@@ -99,15 +172,22 @@
   </div>
 </div>
 
-<div class="foot">
-  <div class="qr" id="qr"></div>
-  <div>
-    <div class="join-label">Join at <span id="host"></span></div>
-    <div class="code" id="code"></div>
+<div class="foot" id="foot">
+  <div class="foot-join">
+    <div class="qr" id="qr"></div>
+    <div>
+      <div class="join-label">Join at <span id="host"></span></div>
+      <div class="code" id="code"></div>
+    </div>
   </div>
+
+  <div class="foot-mid">
+    <button type="button" id="big">Big cloud</button>
+  </div>
+
   <div class="tally">
-    <b id="tally-people">0</b>
-    <span id="tally-label">people</span>
+    <div><b id="tally-people">0</b> <span id="tally-people-word">people</span></div>
+    <div><b id="tally-ideas">0</b> <span id="tally-ideas-word">ideas</span></div>
   </div>
 </div>
 

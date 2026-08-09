@@ -270,6 +270,14 @@ button.bubble:active { transform: scale(0.96); }
   padding: 0;
   max-height: 24vh;
   overflow: hidden;
+  margin-bottom: var(--wc-s2);
+}
+
+/* The fade is applied only when there is genuinely more below, because a
+   permanent one dims the bottom row of a cloud that fits perfectly well. With
+   a single row that meant the only row was half faded out and looked cut off.
+   The class is set from room.js after measuring. */
+.field.mini.faded {
   mask-image: linear-gradient(to bottom, #000 76%, transparent 100%);
 }
 
@@ -327,12 +335,15 @@ button.bubble:active { transform: scale(0.96); }
 
 /* ── Compose ── */
 
+/* Held clear of the cloud above it. When these sat close together the input
+   read as part of the cloud, and the preview's fade ran right into it. */
 .compose {
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
   background: var(--wc-bg);
-  padding: var(--wc-s3) 0;
+  padding: var(--wc-s4) 0 var(--wc-s3);
+  margin-top: var(--wc-s5);
 }
 
 /* ── Host tidying ── */

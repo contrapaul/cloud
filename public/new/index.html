@@ -27,14 +27,18 @@
     <h1>New cloud</h1>
 
     <section class="panel stack">
+      <!-- Placeholders rather than prefilled values, so typing replaces them
+           instead of forcing somebody to clear the box first. If either is
+           left alone the placeholder is used as written, which means a cloud
+           can be created without filling in anything at all. -->
       <div>
         <label for="title">Title</label>
-        <input type="text" id="title" maxlength="80" placeholder="Staff orientation 2026">
+        <input type="text" id="title" maxlength="80" placeholder="My first cloud">
       </div>
       <div>
         <label for="question">Question everyone answers</label>
         <input type="text" id="question" maxlength="140"
-               value="What are your hobbies or interests?">
+               placeholder="What are your favorite types of cloud?">
       </div>
     </section>
 
@@ -80,8 +84,6 @@
     </details>
 
     <button type="button" class="btn" id="create">Create the cloud</button>
-    <p class="muted tiny center">Everyone who joins stays anonymous. Nothing
-      asks for a name.</p>
   </section>
 
   <!-- Step 2: share it -->

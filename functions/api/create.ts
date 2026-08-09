@@ -1,6 +1,8 @@
 import { HttpError, doCall, json, newCode, readData, readJson, readToken } from './_lib';
 
-const DEFAULT_QUESTION = 'What are your hobbies or interests?';
+// Kept in step with the placeholder on the new cloud page, so a request that
+// arrives without a question produces what the creator was looking at.
+const DEFAULT_QUESTION = 'What are your favorite types of cloud?';
 
 /* Create a cloud. The creator's token becomes the host token, which is the
    only privileged thing in the system: it is never broadcast, and holding it

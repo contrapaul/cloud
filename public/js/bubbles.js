@@ -17,12 +17,41 @@
      lets a phone keep a dozen bubbles on screen at once while the projector
      runs the same numbers out to something readable from the back of a hall.
 
-     Square root rather than linear so a runaway winner cannot eat the screen,
-     and normalised against the current leader so the whole field rescales as
-     things grow and always fits. */
-  function scaleFor(n, top) {
-    if (top <= 1) return 0;
-    return Math.sqrt(n / top);
+     Spread across the range actually present, from the least backed idea to
+     the most, rather than from zero to the leader. Measuring from zero looks
+     fine early and then collapses: once a room of 120 has voted, the counts
+     might run 51 to 73, which against a zero baseline is 0.84 to 1.00 and
+     renders every idea at almost exactly the same size. That is the point
+     where the cloud stops saying anything. Against the range that is present
+     it is 0 to 1, and the difference between 51 and 73 is visible from the
+     back of the hall, which is the entire job.
+
+     The exponent lifts the lower half a little, so the least backed idea is
+     still comfortably readable rather than vanishing. */
+  const NEUTRAL = 0.45;      // the settled middle size a new cloud sits at
+
+  function scaleFor(n, lo, hi) {
+    // Everything level, which is the normal state of a cloud in its first
+    // minute. One settled middle size, not all-minimum and not all-maximum.
+    if (hi <= lo) return NEUTRAL;
+
+    const rel = (n - lo) / (hi - lo);   // position within the range present
+    const abs = n / hi;                 // share of the leader
+
+    /* Mostly relative, so differences stay visible once counts converge, but
+       with an absolute component so a well backed idea never renders tiny
+       merely because something else beat it. On the load test spread of 51 to
+       73, pure relative sizing put 51 at the absolute minimum, which reads as
+       "nobody wanted this" about an idea that 70 percent of the room chose. */
+    const blended = Math.min(1, 0.7 * Math.pow(rel, 0.8) + 0.3 * abs);
+
+    /* How much to trust the spread yet. Two votes against one is a real
+       difference but a thin one, and letting it drive the full size range is
+       what made the wall lurch every time an early vote landed. The range
+       opens up as the gap widens and real information accumulates. */
+    const trust = Math.min(1, (hi - lo) / 4);
+
+    return Math.max(0, Math.min(1, NEUTRAL + (blended - NEUTRAL) * trust));
   }
 
   function Field(el, opts) {
@@ -72,7 +101,11 @@
     if (this.opts.order === 'stable') list.sort(function (a, b) { return a.id - b.id; });
     else list.sort(function (a, b) { return b.n - a.n || a.id - b.id; });
 
-    const top = entries.reduce(function (m, e) { return e.n > m ? e.n : m; }, 1);
+    let lo = Infinity, hi = -Infinity;
+    for (const e of entries) {
+      if (e.n < lo) lo = e.n;
+      if (e.n > hi) hi = e.n;
+    }
     const sorted = list;
 
     const seen = new Set();
@@ -81,7 +114,7 @@
       if (!node) node = this.make(entry);
       seen.add(entry.id);
 
-      node.style.setProperty('--s', scaleFor(entry.n, top).toFixed(3));
+      node.style.setProperty('--s', scaleFor(entry.n, lo, hi).toFixed(3));
       node.classList.toggle('mine', !!entry.mine);
       const count = node.querySelector('.n');
       if (count.textContent !== String(entry.n)) count.textContent = entry.n;

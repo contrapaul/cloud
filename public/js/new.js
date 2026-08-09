@@ -27,12 +27,11 @@
 
   $('create').addEventListener('click', async function (e) {
     errBox.classList.add('hidden');
-    const title = $('title').value.trim();
-    if (!title) {
-      fail('Give the cloud a title. It is what you will recognise it by later.');
-      $('title').focus();
-      return;
-    }
+    /* An untouched box uses what it was showing. Somebody who just wants to
+       try this should be able to press the button and have a working cloud,
+       and the placeholder is what they were looking at when they did. */
+    const title = $('title').value.trim() || $('title').placeholder;
+    const question = $('question').value.trim() || $('question').placeholder;
 
     const btn = e.currentTarget;
     btn.disabled = true;
@@ -42,7 +41,7 @@
       const res = await CloudNet.request('POST', '/api/create', {
         token: CloudNet.me().token,
         title: title,
-        question: $('question').value.trim(),
+        question: question,
         maxEntries: Number($('maxEntries').value),
         maxChars: Number($('maxChars').value),
         voting: $('voting').value === 'on',

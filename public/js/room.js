@@ -66,6 +66,8 @@
     field.render(list);
     mini.render(list);
     $('mini').hidden = entries.size === 0;
+    // Fade the preview only when it is genuinely holding more than it shows.
+    $('mini').classList.toggle('faded', $('mini').scrollHeight > $('mini').clientHeight + 2);
     $('tap-hint').hidden = entries.size === 0 || !voting;
     $('field-empty').hidden = entries.size > 0;
     if (!entries.size) $('field-empty').textContent = 'Nothing in the cloud yet. Add the first idea.';
@@ -369,7 +371,7 @@
     $('toggle-manage').textContent = on ? 'Done tidying' : 'Tidy up the cloud';
     $('tap-hint').textContent = on
       ? 'Tap an idea to hide it or fold it into another'
-      : 'Tap everything you are into as well';
+      : 'Tap words submitted by other people to join them';
   }
 
   function unhide(id) {
