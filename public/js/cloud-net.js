@@ -64,7 +64,30 @@
   function remember(entry) {
     const list = mine().filter((c) => c.code !== entry.code);
     list.unshift(Object.assign({ seenAt: Date.now() }, entry));
-    localStorage.setItem(LIST, JSON.stringify(list.slice(0, 50)));
+    try { localStorage.setItem(LIST, JSON.stringify(list.slice(0, 50))); } catch (e) { /* full */ }
+  }
+
+  /* The saved copy of a cloud's results.
+
+     Written by every participant, not only the host, because the results are
+     meant to be yours to keep and the server copy is deleted after 30 days.
+     This is what makes a cloud you took part in still readable months later,
+     with no account and nothing held on our side. */
+  function snapshot(code) {
+    try { return JSON.parse(localStorage.getItem('wc:snap:' + code) || 'null'); }
+    catch (e) { return null; }
+  }
+
+  function saveSnapshot(code, data) {
+    try { localStorage.setItem('wc:snap:' + code, JSON.stringify(data)); return true; }
+    catch (e) { return false; }   // a full quota must never break the live cloud
+  }
+
+  function forget(code) {
+    try {
+      localStorage.removeItem('wc:snap:' + code);
+      localStorage.setItem(LIST, JSON.stringify(mine().filter((c) => c.code !== code)));
+    } catch (e) { /* nothing to do */ }
   }
 
   /* ── REST ── */
@@ -153,6 +176,9 @@
     codeFromUrl: codeFromUrl,
     mine: mine,
     remember: remember,
+    snapshot: snapshot,
+    saveSnapshot: saveSnapshot,
+    forget: forget,
     request: request,
     connect: connect,
     send: send,

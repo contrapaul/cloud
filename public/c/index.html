@@ -24,6 +24,21 @@
 
   <div id="err" class="err hidden"></div>
 
+  <!-- Shown instead of the live cloud when the server copy has gone. -->
+  <section id="saved" class="stack" hidden>
+    <div class="toast">
+      <b>Saved copy.</b>
+      <span id="saved-when"></span>
+      Clouds are kept on the server for 30 days, so this is the record held on
+      this device.
+    </div>
+    <h1 id="saved-question"></h1>
+    <p class="muted tiny" id="saved-counts"></p>
+    <section id="saved-field" class="field"></section>
+    <button type="button" class="btn secondary" id="saved-csv">Download CSV</button>
+    <button type="button" class="btn secondary" id="saved-forget">Forget this cloud</button>
+  </section>
+
   <div class="center" style="padding-top: var(--wc-s4);">
     <h1 id="question"></h1>
     <p class="muted tiny" id="counts"></p>

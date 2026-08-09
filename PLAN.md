@@ -197,10 +197,20 @@ Two layers, and the distinction matters.
 - **Server**: the DO keeps a cloud for 30 days, then self deletes on an alarm
   sweep. This is the live copy.
 - **Local**: every device stores a list of clouds it created or joined in
-  `localStorage`. On the host device a full snapshot of entries and counts is
-  written whenever the host opens the results panel, so **the data survives the
-  server side cleanup**. "My clouds" lists them and can reopen a saved snapshot
-  read only after the room is gone.
+  `localStorage`, plus a full snapshot of the results, so **the data survives
+  the server side cleanup**.
+
+  The snapshot is written by **every participant, not only the host**. The
+  brief asked for the results to be saved locally for each person, and a guest
+  who took part has as much claim to the record as the person who opened the
+  room. It is written continuously and debounced rather than behind a button,
+  because the one time somebody needs it is the time they forgot to press it.
+
+  When the server has forgotten a cloud, the invite link still works: `/c/CODE`
+  falls back to whatever this device kept and shows it read only, including a
+  CSV download built entirely on the client. "Your clouds" on the home page
+  lists them with the date and how many ideas are held, and each can be
+  forgotten, which drops the list entry and the snapshot together.
 
 Host identity is a token in `localStorage`, same as everything else. Clearing
 site data loses host control, so the create screen shows a one time host

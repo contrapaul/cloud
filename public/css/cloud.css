@@ -166,8 +166,14 @@ input::placeholder { color: var(--wc-muted); }
 /* ── Cloud list on the home page ── */
 
 .cloud-list { list-style: none; margin: 0; padding: 0; }
+.cloud-list li {
+  display: flex;
+  gap: var(--wc-s2);
+  align-items: stretch;
+}
 .cloud-list li + li { margin-top: var(--wc-s2); }
 .cloud-list a {
+  flex: 1;
   display: flex;
   justify-content: space-between;
   gap: var(--wc-s3);
@@ -178,7 +184,20 @@ input::placeholder { color: var(--wc-muted); }
   border-radius: var(--wc-r);
   color: var(--wc-text);
   text-decoration: none;
+  min-height: 3rem;
 }
+
+.forget {
+  flex: 0 0 auto;
+  width: 3rem;
+  background: transparent;
+  border: 1px solid var(--wc-line);
+  border-radius: var(--wc-r);
+  color: var(--wc-muted);
+  font: inherit;
+  cursor: pointer;
+}
+.forget:hover, .forget:focus-visible { color: var(--wc-bad); border-color: var(--wc-bad); }
 .cloud-list .code-tag {
   font-family: var(--wc-num);
   font-size: 0.8125rem;

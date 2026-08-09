@@ -430,23 +430,19 @@
      host has just corrected. */
   let saveTimer = null;
   function scheduleSave() {
-    if (!isHost || saveTimer !== null) return;
+    if (saveTimer !== null || !cloudInfo.title) return;
     saveTimer = setTimeout(function () {
       saveTimer = null;
-      try {
-        localStorage.setItem('wc:snap:' + code, JSON.stringify({
-          code: code,
-          title: cloudInfo.title,
-          question: cloudInfo.question,
-          people: people,
-          savedAt: Date.now(),
-          results: [...entries.values()]
-            .map(function (e) { return { text: e.text, supporters: e.n }; })
-            .sort(function (x, y) { return y.supporters - x.supporters; }),
-        }));
-      } catch (err) {
-        // A full quota must never take the live cloud down with it.
-      }
+      CloudNet.saveSnapshot(code, {
+        code: code,
+        title: cloudInfo.title,
+        question: cloudInfo.question,
+        people: people,
+        savedAt: Date.now(),
+        results: [...entries.values()]
+          .map(function (e) { return { text: e.text, supporters: e.n }; })
+          .sort(function (x, y) { return y.supporters - x.supporters; }),
+      });
     }, 1000);
   }
 
@@ -480,13 +476,77 @@
     $('status').textContent = s === 'open' ? 'live' : 'reconnecting';
   }
 
+  /* ── The saved copy ──
+
+     When the server has forgotten a cloud, the same link still works: it falls
+     back to whatever this device kept. That is the point of saving locally.
+     Nothing here talks to the network. */
+
+  function showSaved(snap) {
+    document.title = snap.title;
+    $('head-title').textContent = snap.title;
+    $('status').className = 'status';
+    $('status').textContent = 'saved';
+    $('question').textContent = '';
+    $('counts').textContent = '';
+    $('compose').hidden = true;
+    $('mini').hidden = true;
+    $('field-empty').hidden = true;
+    $('tap-hint').hidden = true;
+
+    $('saved-question').textContent = snap.question || snap.title;
+    $('saved-when').textContent = 'Kept from ' + new Date(snap.savedAt).toLocaleDateString()
+      + '.';
+    $('saved-counts').textContent = snap.people + (snap.people === 1 ? ' person, ' : ' people, ')
+      + snap.results.length + (snap.results.length === 1 ? ' idea' : ' ideas');
+
+    const saved = Bubbles.field($('saved-field'), { order: 'support' });
+    saved.render(snap.results.map(function (r, i) {
+      return { id: i, text: r.text, n: r.supporters, mine: false };
+    }));
+
+    $('saved').hidden = false;
+
+    $('saved-csv').addEventListener('click', function () { savedCsv(snap); });
+    $('saved-forget').addEventListener('click', function () {
+      CloudNet.forget(code);
+      location.href = '/';
+    });
+  }
+
+  /* Mirrors csvCell() in functions/api/[code]/export.ts. Quote everything, and
+     neutralise a leading =, + or - so a typed answer cannot be executed as a
+     formula when the file is opened in a spreadsheet. */
+  function savedCsv(snap) {
+    const cell = function (v) {
+      const risky = /^[=+\-@\t\r]/.test(v) ? "'" + v : v;
+      return '"' + String(risky).replace(/"/g, '""') + '"';
+    };
+    const rows = [['idea', 'supporters'].map(cell).join(',')];
+    for (const r of snap.results) rows.push([cell(r.text), cell(String(r.supporters))].join(','));
+    const blob = new Blob([rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (snap.title || 'cloud').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '').slice(0, 40) + '-' + code + '.csv';
+    document.body.append(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   (async function start() {
     try {
       await CloudNet.request('POST', '/api/' + code + '/join', {
         token: CloudNet.me().token,
       });
     } catch (err) {
-      fail(err.status === 404 ? 'This cloud no longer exists.' : err.message);
+      const snap = CloudNet.snapshot(code);
+      if (err.status === 404 && snap) { showSaved(snap); return; }
+      fail(err.status === 404
+        ? 'This cloud no longer exists, and this device has no saved copy of it.'
+        : err.message);
       return;
     }
     CloudNet.connect(code, { onState: onState, onDelta: onDelta, onStatus: onStatus });
