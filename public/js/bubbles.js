@@ -58,10 +58,22 @@
     const before = new Map();
     for (const [id, node] of this.nodes) before.set(id, node.getBoundingClientRect());
 
-    const sorted = entries.slice().sort(function (a, b) {
-      return b.n - a.n || a.id - b.id;
-    });
-    const top = sorted.length ? sorted[0].n : 1;
+    /* Two orderings, for two jobs.
+
+       'support' puts the most backed first, which is what you want on the wall
+       and in the preview: the shape of the room's answer at a glance.
+
+       'stable' is creation order, and it is the right choice for a field
+       people are tapping. Re-sorting by support would mean every tap anybody
+       makes reshuffles the list under everybody's thumb, so you would lose
+       your place mid scan and mistap something you did not mean. Nothing ever
+       moves in this one: new ideas append at the end. */
+    const list = entries.slice();
+    if (this.opts.order === 'stable') list.sort(function (a, b) { return a.id - b.id; });
+    else list.sort(function (a, b) { return b.n - a.n || a.id - b.id; });
+
+    const top = entries.reduce(function (m, e) { return e.n > m ? e.n : m; }, 1);
+    const sorted = list;
 
     const seen = new Set();
     for (const entry of sorted) {

@@ -150,6 +150,17 @@ This is the actual point of the project, so it gets real work.
 
 ## Bubbles
 
+**There are two fields on the participant screen, showing the same data for
+two different jobs.** Below the input sits the tap field: every bubble the same
+small size, in fixed creation order. It is a list to work through, so it has to
+be dense enough to scan a lot of ideas at once and it must never move under a
+thumb. Sizing it by support would bury new ideas and reshuffle the layout every
+time anybody in the room tapped anything.
+
+Growth is shown in two other places: a small height capped preview above the
+input, sorted and sized by support, and the host's display view at full size.
+Nobody is aiming at either of those, so they are free to move.
+
 **Layout is a wrapping field of pills, not a spiral word cloud.** A spiral
 layout re-solves itself whenever anything is added or resized, so during live
 use it would thrash and jump under a thumb mid-tap. A flex-wrap field reflows

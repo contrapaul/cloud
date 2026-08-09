@@ -29,6 +29,9 @@
     <p class="muted tiny" id="counts"></p>
   </div>
 
+  <!-- The cloud as it stands, scaled down. Watching, not tapping. -->
+  <section id="mini" class="field mini" aria-hidden="true"></section>
+
   <section class="compose stack" id="compose" hidden>
     <div class="row">
       <input type="text" id="entry" maxlength="40" placeholder="Type one thing"
@@ -38,7 +41,8 @@
     <div id="toast" class="toast hidden"></div>
   </section>
 
-  <section id="field" class="field" aria-live="polite"></section>
+  <p class="tiny muted" id="tap-hint" hidden style="margin: 0;">Tap everything you are into as well</p>
+  <section id="field" class="field uniform" aria-live="polite"></section>
   <p class="field-empty" id="field-empty">Connecting to the cloud.</p>
 
 </main>

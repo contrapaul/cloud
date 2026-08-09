@@ -32,15 +32,43 @@
   }
 
   const entries = new Map();
-  const field = Bubbles.field($('field'), {});
+
+  /* Two views of the same data, which is the whole design of this screen.
+
+     The field below the input is a list to work through: uniform bubbles in a
+     fixed order, so tapping is aiming at something that does not move. The
+     preview above the input is the cloud itself, sized by support and sorted
+     by it, so you can watch the room's answer take shape while you type. */
+  const field = Bubbles.field($('field'), { order: 'stable', onTap: tap });
+  const mini = Bubbles.field($('mini'), { order: 'support' });
+
+  let voting = true;
   let people = 0;
   let live = 0;
   let toastTimer = null;
 
   function draw() {
-    field.render([...entries.values()]);
+    const list = [...entries.values()];
+    field.render(list);
+    mini.render(list);
+    $('mini').hidden = entries.size === 0;
+    $('tap-hint').hidden = entries.size === 0 || !voting;
     $('field-empty').hidden = entries.size > 0;
     if (!entries.size) $('field-empty').textContent = 'Nothing in the cloud yet. Add the first idea.';
+  }
+
+  /* Tapping is optimistic. The server confirms with a 'mine' message and the
+     room hears about it on the next coalesced frame, but waiting 150ms to
+     redraw your own tap is exactly what would make this feel sluggish, and
+     tapping fast through a long field is meant to be the fun part. */
+  function tap(id) {
+    const e = entries.get(id);
+    if (!e || !voting) return;
+    e.mine = !e.mine;
+    e.n += e.mine ? 1 : -1;
+    draw();
+    field.pop(id);
+    CloudNet.send({ t: 'vote', id: id });
   }
 
   function counts() {
@@ -83,6 +111,7 @@
     $('question').textContent = msg.question;
     people = msg.people;
     live = msg.live;
+    voting = msg.opts.voting && !msg.locked;
 
     entries.clear();
     for (const e of msg.entries) entries.set(e.id, e);
@@ -136,13 +165,25 @@
       return;
     }
 
+    // Your own tap, confirmed. The count here is authoritative and overwrites
+    // whatever the optimistic update guessed, so a tap that raced somebody
+    // else's, or was refused outright, settles on the truth.
+    if (msg.t === 'mine') {
+      const e = entries.get(msg.id);
+      if (e) { e.mine = msg.mine; e.n = msg.n; draw(); }
+      return;
+    }
+
     if (msg.t === 'bumps') {
       for (const pair of msg.v) {
         const e = entries.get(pair[0]);
         if (e) e.n = pair[1];
       }
       draw();
-      for (const pair of msg.v) field.pop(pair[0]);
+      // Only the preview pulses. Popping bubbles in the field somebody is
+      // aiming at, every time anybody in the room taps anything, would be
+      // both distracting and a moving target.
+      for (const pair of msg.v) mini.pop(pair[0]);
       return;
     }
 

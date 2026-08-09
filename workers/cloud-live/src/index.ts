@@ -46,6 +46,26 @@ const RETAIN_MS = 30 * 24 * 60 * 60 * 1000;
    stop a stuck key or an impatient double tap turning into ten rows. */
 const ADD_EVERY_MS = 500;
 
+/* Tapping is rate limited as a token bucket rather than a minimum gap, because
+   the intended behaviour IS a burst: you scan the field and tap the six things
+   you are also into, as fast as you can read them. A minimum gap between taps
+   would throw most of that away.
+
+   A vote is a toggle bounded by the primary key on votes, so no amount of
+   tapping can corrupt a total. This only exists to cap the cost of a script. */
+const VOTE_BURST = 12;
+const VOTE_REFILL_MS = 100;
+
+/* How long vote changes accumulate before one merged frame goes out.
+
+   This is the number that makes 100+ participants viable. Broadcasting each
+   tap separately means every tap costs one send per socket, so a room where
+   everyone is scanning and tapping at once produces a fan out storm. Buffering
+   for 150ms turns a burst of 200 taps into roughly 7 frames a second, and
+   150ms is short enough that a tap still feels immediate, helped by the client
+   updating its own bubble optimistically rather than waiting for this. */
+const FLUSH_MS = 150;
+
 /* The key that decides whether two submissions are the same idea.
 
    This is the whole point of the project. "Warhammer", "warhammer" and
@@ -78,6 +98,14 @@ export class WordCloudRoom {
   /* Submission throttle, per person. In memory on purpose: it is worth
      nothing after a restart and costs nothing to lose. */
   lastAdd = new Map<number, number>();
+  voteBucket = new Map<number, { tokens: number; ts: number }>();
+
+  /* Vote totals waiting to go out as one merged frame. Holding the total
+     rather than a delta means repeated taps on the same entry inside a window
+     collapse to a single number, and a frame that never arrives is corrected
+     by the next one rather than leaving a client counting wrong. */
+  pending = new Map<number, number>();
+  flushTimer: any = null;
 
   constructor(ctx: DurableObjectState) {
     this.ctx = ctx;
@@ -251,7 +279,89 @@ export class WordCloudRoom {
     if (!cloud) return;
 
     if (msg.t === 'add') await this.add(ws, cloud, personId, msg);
-    // vote / hide / merge / lock arrive in phase 3 onward.
+    else if (msg.t === 'vote') this.vote(ws, cloud, personId, msg);
+    // hide / merge / lock arrive in phase 5.
+  }
+
+  /* Tapping a bubble to say "I am into that too".
+
+     Toggles, so a mistaken tap can be taken back. The primary key on votes is
+     what makes the count trustworthy: one person contributes at most one to
+     any entry no matter how many times they tap it, which is what lets the
+     export claim to be a count of people rather than a count of taps. */
+  vote(ws: WebSocket, cloud: Cloud, personId: number, msg: any) {
+    const id = Number(msg.id);
+    if (!Number.isInteger(id)) return;
+
+    /* Whenever a tap is not going to be applied, the tapper is sent the real
+       state of that entry instead of nothing at all.
+
+       The client updates its own bubble optimistically so tapping feels
+       instant, which means a silently dropped tap would leave that device
+       showing an idea as supported when the server disagrees, with nothing to
+       correct it until a reconnect. Somebody would walk away believing they
+       had backed something they had not. */
+    const correct = () => {
+      const mine = Number(this.sql.exec(
+        'SELECT COUNT(*) AS n FROM votes WHERE entryId = ? AND personId = ?', id, personId
+      ).one().n) > 0;
+      ws.send(JSON.stringify({ t: 'mine', id, mine, n: this.voteCount(id) }));
+    };
+
+    const row = [...this.sql.exec(
+      'SELECT id FROM entries WHERE id = ? AND hidden = 0 AND mergedInto IS NULL', id
+    )];
+    if (!row.length) return;
+
+    if (!cloud.opts.voting || cloud.locked) return correct();
+
+    const now = Date.now();
+    const bucket = this.voteBucket.get(personId) ?? { tokens: VOTE_BURST, ts: now };
+    const gained = Math.floor((now - bucket.ts) / VOTE_REFILL_MS);
+    if (gained > 0) {
+      bucket.tokens = Math.min(VOTE_BURST, bucket.tokens + gained);
+      bucket.ts = now;
+    }
+    if (bucket.tokens <= 0) {
+      this.voteBucket.set(personId, bucket);
+      return correct();
+    }
+    bucket.tokens -= 1;
+    this.voteBucket.set(personId, bucket);
+
+    const had = Number(this.sql.exec(
+      'SELECT COUNT(*) AS n FROM votes WHERE entryId = ? AND personId = ?', id, personId
+    ).one().n) > 0;
+
+    if (had) {
+      this.sql.exec('DELETE FROM votes WHERE entryId = ? AND personId = ?', id, personId);
+    } else {
+      this.sql.exec('INSERT OR IGNORE INTO votes (entryId, personId) VALUES (?, ?)', id, personId);
+    }
+
+    const n = this.voteCount(id);
+    // The tapper is told directly and immediately. Only they need to know
+    // whether the bubble is now theirs, and waiting for the coalescing window
+    // to confirm their own tap is what would make it feel laggy.
+    ws.send(JSON.stringify({ t: 'mine', id, mine: !had, n }));
+    this.queueBump(id, n);
+  }
+
+  /* Buffer a new total for broadcast. See FLUSH_MS. */
+  queueBump(entryId: number, n: number) {
+    this.pending.set(entryId, n);
+    if (this.flushTimer !== null) return;
+    // A pending timer keeps the object awake, so the buffer cannot be lost to
+    // hibernation: an idle room has nothing buffered by definition.
+    this.flushTimer = setTimeout(() => this.flushBumps(), FLUSH_MS);
+  }
+
+  flushBumps() {
+    this.flushTimer = null;
+    if (!this.pending.size) return;
+    const v = [...this.pending.entries()];
+    this.pending.clear();
+    this.broadcast({ t: 'bumps', v });
   }
 
   /* Somebody submits an idea.
@@ -312,7 +422,7 @@ export class WordCloudRoom {
           ? 'Already up there, so we added your support instead.'
           : 'You are already backing that one.',
       }));
-      if (added) this.broadcast({ t: 'bumps', v: [[target, n]] }, ws);
+      if (added) this.queueBump(target, n);
       return;
     }
 
@@ -343,7 +453,6 @@ export class WordCloudRoom {
     // flag would put us back to N serialisations per event.
     ws.send(JSON.stringify({ t: 'added', id, text, n: 1 }));
     this.broadcast({ t: 'add', id, text, n: 1 }, ws);
-    this.broadcast({ t: 'here', live: this.liveCount(), people: this.countPeople() });
   }
 
   /* Returns true when this was a new vote, false when the person already had

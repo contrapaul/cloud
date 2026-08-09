@@ -212,6 +212,54 @@ input::placeholder { color: var(--wc-muted); }
   .field { --bubble-max: 2.1rem; }
 }
 
+/* The tap field. Every bubble the same size on purpose: this one is a list to
+   work through, not a picture. Uniform size keeps it dense enough to scan a
+   lot of ideas at once, gives every idea the same chance of being noticed
+   rather than burying the new ones, and stops the layout reflowing as counts
+   change while somebody is tapping. Growth is shown in the preview above the
+   input and on the host's display, where nobody is aiming at anything. */
+.field.uniform .bubble {
+  font-size: 0.95rem;
+  /* 44px, so a bubble is a comfortable thumb target however short its word
+     is. Everything in this field is tapped, repeatedly and quickly. */
+  min-height: 2.75rem;
+  padding: 0.4em 0.9em;
+}
+
+button.bubble {
+  cursor: pointer;
+  user-select: none;
+  /* Fast repeated tapping should not select the words or flash a grey box. */
+  -webkit-tap-highlight-color: transparent;
+}
+button.bubble:focus-visible {
+  outline: 2px solid var(--wc-text);
+  outline-offset: 2px;
+}
+button.bubble:active { transform: scale(0.96); }
+
+/* The preview above the input: the real cloud, scaled down to a glance.
+
+   Height capped and faded out at the bottom, because this grows without limit
+   and must never push the input or the tap field off the screen. It is a
+   glance at the shape of the answer, not the record: the full cloud is the
+   thing on the wall. */
+.field.mini {
+  --bubble-min: 0.6rem;
+  --bubble-max: 1.15rem;
+  gap: var(--wc-s1) var(--wc-s2);
+  padding: 0;
+  max-height: 24vh;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 76%, transparent 100%);
+}
+
+.field.mini .bubble {
+  padding: 0.2em 0.6em;
+  border-width: 1px;
+}
+.field.mini .bubble .n { font-size: 0.7em; }
+
 .bubble {
   --hue: var(--wc-b1);
   --s: 0;
