@@ -9,6 +9,7 @@
     "deploy:do": "wrangler deploy --config workers/cloud-live/wrangler.toml"
   },
   "devDependencies": {
+    "qrcode-generator": "^2.0.4",
     "wrangler": "^4.112.0"
   },
   "allowScripts": {

@@ -36,16 +36,19 @@ interface, or the live site will be calling a method that is not there yet.
 | Path | What |
 |---|---|
 | `public/` | the static site, served as is |
+| `public/js/vendor/` | third party code, committed on purpose so nothing is fetched at runtime |
 | `public/data/profanity.txt` | the blocklist, single source of truth, edit and push |
 | `functions/api/` | Pages Functions, the only thing that talks to the DO |
 | `workers/cloud-live/` | the Durable Object, one instance per share code |
 
 ## Two rules that are easy to break
 
-**Fonts are self hosted, always.** Everything is served from `public/fonts/`.
-Nothing may be fetched from `fonts.googleapis.com`, `fonts.gstatic.com` or any
-other external host. Those are unreachable in China and a blocking request to a
-dead host stops the page loading. If you add a face, add the woff2 to the repo.
+**Nothing is fetched from another host, ever.** Fonts come from
+`public/fonts/`, third party scripts from `public/js/vendor/`. No CDN, no
+`fonts.googleapis.com`, no `fonts.gstatic.com`. Those are unreachable in China
+and a blocking request to a dead host stops the page loading. If you add a
+font, commit the woff2. If you add a library, commit the built file and note
+where it came from.
 
 **No em dash characters.** Not in the UI, not in comments, not in docs. Use a
 comma, a full stop or a colon.

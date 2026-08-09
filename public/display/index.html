@@ -5,50 +5,113 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cloud display</title>
 <meta name="robots" content="noindex">
+<link rel="preload" href="../fonts/BespokeSlab-Extrabold.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../css/tokens.css">
 <link rel="stylesheet" href="../css/cloud.css">
 <style>
-  /* The projector view. No chrome, no controls, nothing tappable. The join
-     code stays on screen the whole time so latecomers can join off the wall.
-     Full typography and the QR code arrive in phase 6. */
-  body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  /* The projector view. No chrome, nothing tappable, nothing that needs a
+     person standing at the machine. */
+  body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
+
   /* min-height and overflow together are what stop a full cloud growing past
-     the viewport and shoving the join code off the bottom of the screen. The
-     code has to stay visible for the whole session so latecomers can join off
-     the wall, so the field yields, never the footer. */
-  .stage { flex: 1; min-height: 0; overflow: hidden;
-           display: flex; align-items: center; justify-content: center;
-           text-align: center; padding: var(--wc-s5) var(--wc-s6); }
-  .foot { display: flex; align-items: baseline; justify-content: space-between;
-          gap: var(--wc-s4); padding: var(--wc-s4) var(--wc-s6);
-          border-top: 1px solid var(--wc-line); background: var(--wc-bg-2); }
-  .foot .code { font-size: clamp(1.5rem, 4vw, 2.5rem); }
-  /* Read from the back of a hall, so the same scale factors run much larger
-     here than they do in somebody's hand. */
-  .stage .field {
-    --bubble-min: clamp(0.85rem, 1.5vw, 1.4rem);
-    --bubble-max: clamp(1.8rem, 4.2vw, 4rem);
+     the viewport and shoving the join code off the bottom. The code has to
+     stay visible for the whole session so latecomers can join off the wall,
+     so the field yields, never the footer. */
+  .stage {
+    flex: 1; min-height: 0; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    padding: 2vh 3vw;
   }
+  .stage-inner { width: 100%; text-align: center; }
+
+  #question {
+    font-size: clamp(1rem, 2.2vw, 2rem);
+    color: var(--wc-muted);
+    font-family: var(--wc-body);
+    font-weight: 600;
+    margin-bottom: 2vh;
+  }
+
+  /* --fit is set by the script, which grows the type until the cloud fills
+     the screen. See fit() in display.js. */
+  .stage .field {
+    --fit: 1;
+    --bubble-min: calc(0.9rem * var(--fit));
+    --bubble-max: calc(2.8rem * var(--fit));
+    gap: calc(0.5rem * var(--fit)) calc(0.8rem * var(--fit));
+    padding: 0;
+  }
+  /* A phrase broken across two lines stops reading as one idea. On the wall
+     there is room to shrink instead, so fit() accounts for width as well as
+     height and every entry stays on a single line. */
+  .stage .field .bubble { white-space: nowrap; max-width: none; }
+
+  /* Words mode: the same layout with the pill chrome taken off, which reads
+     much closer to a traditional word cloud. */
+  .stage .field.words .bubble {
+    background: none;
+    border: none;
+    padding: 0.05em 0.15em;
+    min-height: 0;
+  }
+  .stage .field.words .bubble .n { opacity: 0.45; font-size: 0.45em; }
+
+  .foot {
+    display: flex; align-items: center; gap: 2vw;
+    padding: 1.2vh 3vw;
+    border-top: 1px solid var(--wc-line);
+    background: var(--wc-bg-2);
+  }
+  .foot .qr {
+    width: clamp(64px, 9vh, 132px);
+    height: clamp(64px, 9vh, 132px);
+    background: #fff;
+    padding: 4px;
+    border-radius: 6px;
+    flex: 0 0 auto;
+  }
+  .foot .qr svg { display: block; width: 100%; height: 100%; }
+  .join-label { font-size: clamp(0.75rem, 1.2vw, 1.1rem); color: var(--wc-muted); }
+  .foot .code { font-size: clamp(1.5rem, 3.6vw, 3.25rem); line-height: 1.1; }
+  .tally { margin-left: auto; text-align: right; font-size: clamp(0.9rem, 1.6vw, 1.5rem); color: var(--wc-muted); }
+  .tally b { display: block; font-family: var(--wc-num); color: var(--wc-text); font-size: 1.6em; }
+
+  /* Deliberately faint. Somebody at the laptop can find it, and it stays out
+     of the way of the thing the room is looking at. */
+  .skin {
+    position: fixed; top: 0.6rem; right: 0.8rem;
+    background: transparent; border: 1px solid var(--wc-line); color: var(--wc-muted);
+    border-radius: var(--wc-r); padding: 0.3rem 0.6rem;
+    font: inherit; font-size: 0.75rem; cursor: pointer; opacity: 0.35;
+  }
+  .skin:hover, .skin:focus-visible { opacity: 1; }
 </style>
 </head>
 <body>
 
-<div class="stage">
-  <div style="width: 100%;">
-    <h1 id="question" style="font-size: clamp(1.75rem, 3.5vw, 3rem);"></h1>
-    <div id="field" class="field" style="margin-top: var(--wc-s5);"></div>
+<button type="button" class="skin" id="skin">Words</button>
+
+<div class="stage" id="stage">
+  <div class="stage-inner" id="stage-inner">
+    <p id="question"></p>
+    <div id="field" class="field"></div>
     <p class="field-empty" id="field-empty">Connecting.</p>
   </div>
 </div>
 
 <div class="foot">
+  <div class="qr" id="qr"></div>
   <div>
-    <div class="muted tiny">Join at <span id="host"></span></div>
+    <div class="join-label">Join at <span id="host"></span></div>
     <div class="code" id="code"></div>
   </div>
-  <div class="muted" id="counts"></div>
+  <div class="tally">
+    <b id="tally-people">0</b>
+    <span id="tally-label">people</span>
+  </div>
 </div>
 
+<script src="../js/vendor/qrcode.js"></script>
 <script src="../js/cloud-net.js"></script>
 <script src="../js/bubbles.js"></script>
 <script src="../js/display.js"></script>

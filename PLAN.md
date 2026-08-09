@@ -240,6 +240,23 @@ anonymous.
 5. **Host tools.** Hide, lock, merge, results panel, CSV and JSON export.
 6. **Display view.** Big screen typography, QR code, live counts, join code
    always visible so latecomers can join off the projector.
+
+   The type is fitted by script rather than by viewport units, binary searching
+   a scale multiplier until the cloud fills the stage. Viewport units cannot
+   respond to how MUCH is in the cloud, and five ideas should be huge while
+   eighty shrink to fit rather than scroll out of sight. Entries never wrap
+   mid phrase here, so the fit accounts for width as well as height.
+
+   Two looks, toggled from a faint control and remembered per machine:
+   **bubbles** (the pill chrome, matching the phone) and **words** (chrome
+   removed, which reads as a traditional word cloud). Only the display offers
+   this. The tap field on a phone stays uniform pills, because there it is a
+   set of targets rather than a picture.
+
+   The QR encoder is vendored from npm (qrcode-generator, MIT) rather than
+   hand written. A subtly wrong encoder still looks like a QR code while
+   failing to scan, and that failure would surface in front of a full hall.
+   It is loaded only by the display, so no participant's phone pays for it.
 7. **Local persistence.** My clouds, host snapshot, recovery link.
 8. **Load test.** A script opening 80 to 120 sockets and firing random taps for
    two minutes. Do this for real before orientation day. Discovering the fan out
