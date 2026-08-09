@@ -316,6 +316,17 @@ button.bubble:active { transform: scale(0.96); }
   padding: var(--wc-s3) 0;
 }
 
+/* The "did you mean" strip, between the input and the tap field. Tinted so it
+   reads as a prompt rather than as more of the cloud. */
+.suggest {
+  padding: var(--wc-s3);
+  border-radius: var(--wc-r);
+  background: color-mix(in srgb, var(--wc-accent-2) 10%, var(--wc-bg-2));
+  border: 1px solid color-mix(in srgb, var(--wc-accent-2) 40%, transparent);
+}
+.suggest p { margin: 0 0 var(--wc-s2); color: var(--wc-accent-2); }
+.suggest .field { padding: 0; justify-content: flex-start; }
+
 .toast {
   padding: var(--wc-s3);
   border-radius: var(--wc-r);

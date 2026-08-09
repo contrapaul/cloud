@@ -41,6 +41,7 @@
      by it, so you can watch the room's answer take shape while you type. */
   const field = Bubbles.field($('field'), { order: 'stable', onTap: tap });
   const mini = Bubbles.field($('mini'), { order: 'support' });
+  const hints = Bubbles.field($('suggest-field'), { order: 'support', onTap: joinInstead });
 
   let voting = true;
   let people = 0;
@@ -95,10 +96,54 @@
     // Cleared optimistically. The server answers with 'added' or 'dupe' either
     // way, and leaving the text sitting there invites a second tap on Add.
     input.value = '';
+    showSuggestions();
     input.focus();
   }
 
+  /* Tapping a suggestion: back the idea that is already there rather than
+     adding a near duplicate beside it.
+
+     This never toggles. Tapping a bubble in the field below means "change my
+     mind about this", but tapping one up here means "yes, that is what I was
+     typing", and having that quietly withdraw support because you already
+     backed it would be the opposite of what you just asked for. */
+  function joinInstead(id) {
+    const e = entries.get(id);
+    if (!e) return;
+    if (!e.mine && voting) {
+      e.mine = true;
+      e.n += 1;
+      CloudNet.send({ t: 'vote', id: id });
+      toast('Joined "' + e.text + '" instead of adding a duplicate.', 'good');
+    } else {
+      toast('You already back "' + e.text + '".', '');
+    }
+    $('entry').value = '';
+    showSuggestions();
+    draw();
+  }
+
+  /* Runs on every keystroke. Matching is local and bounded, so there is no
+     debounce: the whole point is that the warning arrives before somebody has
+     finished typing the duplicate, not after. */
+  function showSuggestions() {
+    const text = $('entry').value;
+    const box = $('suggest');
+    if (!text.trim()) { box.hidden = true; hints.render([]); return; }
+
+    const found = Match.suggest(text, [...entries.values()], 3);
+    if (!found.length) { box.hidden = true; hints.render([]); return; }
+
+    const exact = Match.normalise(found[0].text) === Match.normalise(text);
+    $('suggest-hint').textContent = exact
+      ? 'That is already up there. Tap it to add your support.'
+      : 'Somebody may have said this already. Tap to join them, or add yours anyway.';
+    hints.render(found);
+    box.hidden = false;
+  }
+
   $('add').addEventListener('click', submit);
+  $('entry').addEventListener('input', showSuggestions);
   $('entry').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') submit();
   });
@@ -145,6 +190,10 @@
       entries.set(msg.id, { id: msg.id, text: msg.text, n: msg.n, mine: false });
       draw();
       counts();
+      // Somebody else may have just added the very thing being typed here.
+      // Two people racing to submit the same idea is common in the first
+      // minute, and catching it in that window is the whole value.
+      if ($('entry').value.trim()) showSuggestions();
       return;
     }
 

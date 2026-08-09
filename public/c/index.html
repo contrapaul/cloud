@@ -38,6 +38,10 @@
              autocomplete="off" autocapitalize="sentences" enterkeyhint="send">
       <button type="button" class="btn shrink" id="add" style="width: 5.5rem;">Add</button>
     </div>
+    <div id="suggest" class="suggest" hidden>
+      <p class="tiny" id="suggest-hint"></p>
+      <div class="field uniform" id="suggest-field"></div>
+    </div>
     <div id="toast" class="toast hidden"></div>
   </section>
 
@@ -49,6 +53,7 @@
 
 <script src="../js/cloud-net.js"></script>
 <script src="../js/bubbles.js"></script>
+<script src="../js/match.js"></script>
 <script src="../js/room.js"></script>
 </body>
 </html>

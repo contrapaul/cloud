@@ -22,7 +22,7 @@
     return text
       .toLowerCase()
       .normalize('NFKD')
-      .replace(/[̀-ͯ]/g, '')
+      .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^\p{L}\p{N}]+/gu, ' ')
       .trim()
       .replace(/\s+/g, ' ');

@@ -4,9 +4,11 @@
  * public/data/profanity.txt by the Pages Function and handed to the cloud at
  * init, so the file in the repo stays the single source of truth.
  *
- * An identical copy of normalise()/screen() runs client side in
- * public/js/profanity.js so somebody is warned while typing rather than
- * rejected at submit. Keep the two in step.
+ * Screening happens on the server only. Blurt mirrors this on the client so a
+ * player is warned mid sentence, but that means shipping the blocklist to
+ * every device, and here a rejected entry already comes straight back as a
+ * toast. If entries ever get long enough that losing one on submit is
+ * annoying, add the mirror then and keep the two in step.
  */
 
 export interface Blocklist {
