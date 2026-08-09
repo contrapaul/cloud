@@ -29,14 +29,22 @@
     <p class="muted tiny" id="counts"></p>
   </div>
 
-  <!-- The typing interface and the bubble field land here in phase 2. -->
-  <section class="panel center muted" id="field">
-    Connecting to the cloud.
+  <section class="compose stack" id="compose" hidden>
+    <div class="row">
+      <input type="text" id="entry" maxlength="40" placeholder="Type one thing"
+             autocomplete="off" autocapitalize="sentences" enterkeyhint="send">
+      <button type="button" class="btn shrink" id="add" style="width: 5.5rem;">Add</button>
+    </div>
+    <div id="toast" class="toast hidden"></div>
   </section>
+
+  <section id="field" class="field" aria-live="polite"></section>
+  <p class="field-empty" id="field-empty">Connecting to the cloud.</p>
 
 </main>
 
 <script src="../js/cloud-net.js"></script>
+<script src="../js/bubbles.js"></script>
 <script src="../js/room.js"></script>
 </body>
 </html>

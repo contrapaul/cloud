@@ -1,8 +1,11 @@
-/* The participant view.
+/* The participant view: type an idea, watch everyone else's arrive.
 
-   Phase 1 opens the pipe and nothing more: join, connect, render the question
-   and the live counts. The typing interface and the bubble field arrive in
-   phase 2, and they hang off onState and onDelta below. */
+   The client holds the whole entry list in a Map and the server sends deltas
+   into it. Every delta carries the new total rather than an increment, so a
+   dropped or duplicated frame corrects itself on the next one instead of
+   leaving this device counting differently from the projector.
+
+   Tapping a bubble to support it lands in phase 3. */
 (function () {
   'use strict';
 
@@ -28,27 +31,68 @@
     history.replaceState(null, '', '/c/' + code);
   }
 
-  /* State the render will read once there is something to draw. */
-  const state = { entries: new Map(), opts: null, isHost: false, locked: false };
+  const entries = new Map();
+  const field = Bubbles.field($('field'), {});
+  let people = 0;
+  let live = 0;
+  let toastTimer = null;
 
-  function counts(live, people, entries) {
+  function draw() {
+    field.render([...entries.values()]);
+    $('field-empty').hidden = entries.size > 0;
+    if (!entries.size) $('field-empty').textContent = 'Nothing in the cloud yet. Add the first idea.';
+  }
+
+  function counts() {
     $('counts').textContent = people + (people === 1 ? ' person' : ' people')
-      + ', ' + entries + (entries === 1 ? ' idea' : ' ideas')
+      + ', ' + entries.size + (entries.size === 1 ? ' idea' : ' ideas')
       + ', ' + live + ' here now';
   }
+
+  function toast(message, kind) {
+    const el = $('toast');
+    el.textContent = message;
+    el.className = 'toast ' + (kind || '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.className = 'toast hidden'; }, 4000);
+  }
+
+  /* ── Sending ── */
+
+  function submit() {
+    const input = $('entry');
+    const text = input.value.trim();
+    if (!text) return;
+    CloudNet.send({ t: 'add', text: text });
+    // Cleared optimistically. The server answers with 'added' or 'dupe' either
+    // way, and leaving the text sitting there invites a second tap on Add.
+    input.value = '';
+    input.focus();
+  }
+
+  $('add').addEventListener('click', submit);
+  $('entry').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') submit();
+  });
+
+  /* ── Receiving ── */
 
   function onState(msg) {
     document.title = msg.title;
     $('head-title').textContent = msg.title;
     $('question').textContent = msg.question;
-    state.opts = msg.opts;
-    state.isHost = msg.you.isHost;
-    state.locked = msg.locked;
-    state.entries = new Map(msg.entries.map(function (e) { return [e.id, e]; }));
-    counts(msg.live, msg.people, state.entries.size);
-    $('field').textContent = state.entries.size
-      ? 'Ideas arrive here in phase 2.'
-      : 'Nothing in the cloud yet.';
+    people = msg.people;
+    live = msg.live;
+
+    entries.clear();
+    for (const e of msg.entries) entries.set(e.id, e);
+
+    $('entry').maxLength = msg.opts.maxChars;
+    $('compose').hidden = !msg.you.seated || msg.locked;
+    if (msg.locked) toast('This cloud is closed for new ideas.', '');
+
+    draw();
+    counts();
 
     // Recorded here rather than at join, so the local list only ever holds
     // clouds that actually answered.
@@ -60,7 +104,52 @@
   }
 
   function onDelta(msg) {
-    if (msg.t === 'here') counts(msg.live, msg.people, state.entries.size);
+    if (msg.t === 'here') {
+      live = msg.live;
+      people = msg.people;
+      counts();
+      return;
+    }
+
+    // Somebody else added an idea.
+    if (msg.t === 'add') {
+      entries.set(msg.id, { id: msg.id, text: msg.text, n: msg.n, mine: false });
+      draw();
+      counts();
+      return;
+    }
+
+    // Your own idea came back. Same shape, but it is yours.
+    if (msg.t === 'added') {
+      entries.set(msg.id, { id: msg.id, text: msg.text, n: msg.n, mine: true });
+      draw();
+      counts();
+      field.pop(msg.id);
+      return;
+    }
+
+    // You typed something that was already up there, so it became support.
+    if (msg.t === 'dupe') {
+      const e = entries.get(msg.id);
+      if (e) { e.n = msg.n; e.mine = true; draw(); field.pop(msg.id); }
+      toast(msg.message, 'good');
+      return;
+    }
+
+    if (msg.t === 'bumps') {
+      for (const pair of msg.v) {
+        const e = entries.get(pair[0]);
+        if (e) e.n = pair[1];
+      }
+      draw();
+      for (const pair of msg.v) field.pop(pair[0]);
+      return;
+    }
+
+    if (msg.t === 'reject') {
+      toast(msg.message, 'bad');
+      return;
+    }
   }
 
   function onStatus(s) {

@@ -12,20 +12,32 @@
      code stays on screen the whole time so latecomers can join off the wall.
      Full typography and the QR code arrive in phase 6. */
   body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
-  .stage { flex: 1; display: flex; align-items: center; justify-content: center;
-           text-align: center; padding: var(--wc-s6); }
+  /* min-height and overflow together are what stop a full cloud growing past
+     the viewport and shoving the join code off the bottom of the screen. The
+     code has to stay visible for the whole session so latecomers can join off
+     the wall, so the field yields, never the footer. */
+  .stage { flex: 1; min-height: 0; overflow: hidden;
+           display: flex; align-items: center; justify-content: center;
+           text-align: center; padding: var(--wc-s5) var(--wc-s6); }
   .foot { display: flex; align-items: baseline; justify-content: space-between;
           gap: var(--wc-s4); padding: var(--wc-s4) var(--wc-s6);
           border-top: 1px solid var(--wc-line); background: var(--wc-bg-2); }
   .foot .code { font-size: clamp(1.5rem, 4vw, 2.5rem); }
+  /* Read from the back of a hall, so the same scale factors run much larger
+     here than they do in somebody's hand. */
+  .stage .field {
+    --bubble-min: clamp(0.85rem, 1.5vw, 1.4rem);
+    --bubble-max: clamp(1.8rem, 4.2vw, 4rem);
+  }
 </style>
 </head>
 <body>
 
 <div class="stage">
-  <div>
-    <h1 id="question" style="font-size: clamp(2rem, 5vw, 4rem);"></h1>
-    <p class="muted" id="field" style="margin-top: var(--wc-s5);">Connecting.</p>
+  <div style="width: 100%;">
+    <h1 id="question" style="font-size: clamp(1.75rem, 3.5vw, 3rem);"></h1>
+    <div id="field" class="field" style="margin-top: var(--wc-s5);"></div>
+    <p class="field-empty" id="field-empty">Connecting.</p>
   </div>
 </div>
 
@@ -38,6 +50,7 @@
 </div>
 
 <script src="../js/cloud-net.js"></script>
+<script src="../js/bubbles.js"></script>
 <script src="../js/display.js"></script>
 </body>
 </html>

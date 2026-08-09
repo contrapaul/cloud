@@ -185,6 +185,99 @@ input::placeholder { color: var(--wc-muted); }
   color: var(--wc-accent);
 }
 
+/* ── The bubble field ──
+
+   A wrapping field of pills, not a spiral word cloud. A spiral re-solves its
+   whole layout whenever anything is added or resized, which during live use
+   would make bubbles jump under a thumb mid tap. This reflows gracefully, and
+   every bubble stays a comfortable target at any size. */
+
+.field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wc-s2) var(--wc-s3);
+  justify-content: center;
+  align-items: center;
+  padding: var(--wc-s4) 0;
+
+  /* The size range the scale factor maps onto. Kept modest on a phone on
+     purpose: the point of the field is that you can scan a dozen ideas at once
+     and tap the ones you match with, and two or three giant pills per screen
+     would lose that entirely. */
+  --bubble-min: 0.9rem;
+  --bubble-max: 1.6rem;
+}
+
+@media (min-width: 40rem) {
+  .field { --bubble-max: 2.1rem; }
+}
+
+.bubble {
+  --hue: var(--wc-b1);
+  --s: 0;
+  font-size: calc(var(--bubble-min) + (var(--bubble-max) - var(--bubble-min)) * var(--s));
+  /* A long phrase should wrap inside its own pill rather than force the pill
+     wider than the screen. */
+  max-width: 100%;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45em;
+  padding: 0.4em 0.85em;
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--hue);
+  background: color-mix(in srgb, var(--hue) 14%, transparent);
+  border: 2px solid color-mix(in srgb, var(--hue) 45%, transparent);
+  border-radius: var(--wc-r-pill);
+  /* Font size is set inline per bubble, scaled by support. */
+  transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+}
+
+/* Entries you are behind, whether you added them or tapped them. Being able
+   to see at a glance what you have already claimed is what makes scanning the
+   field feel like collecting rather than reading. */
+.bubble.mine {
+  color: var(--wc-bg);
+  background: var(--hue);
+  border-color: var(--hue);
+}
+
+.bubble .n {
+  font-family: var(--wc-num);
+  font-size: 0.62em;
+  opacity: 0.75;
+}
+
+/* Applied for one frame when a count changes, so growth is noticed. */
+.bubble.pop { transform: scale(1.14); }
+
+.field-empty {
+  color: var(--wc-muted);
+  padding: var(--wc-s5) 0;
+  text-align: center;
+}
+
+/* ── Compose ── */
+
+.compose {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background: var(--wc-bg);
+  padding: var(--wc-s3) 0;
+}
+
+.toast {
+  padding: var(--wc-s3);
+  border-radius: var(--wc-r);
+  background: var(--wc-bg-3);
+  border: 1px solid var(--wc-line);
+  font-size: 0.875rem;
+}
+.toast.bad { border-color: var(--wc-bad); }
+.toast.good { border-color: var(--wc-good); }
+
 /* ── Connection status ── */
 
 .status {

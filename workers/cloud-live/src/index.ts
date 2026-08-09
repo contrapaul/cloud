@@ -42,6 +42,28 @@ interface Cloud {
    the snapshot written to the host's own device, not this. */
 const RETAIN_MS = 30 * 24 * 60 * 60 * 1000;
 
+/* One submission per person per 500ms. Not a security control, just enough to
+   stop a stuck key or an impatient double tap turning into ten rows. */
+const ADD_EVERY_MS = 500;
+
+/* The key that decides whether two submissions are the same idea.
+
+   This is the whole point of the project. "Warhammer", "warhammer" and
+   "Warhammer!" have to collapse to one bubble, because a cloud that splits a
+   single idea across three entries defeats the exercise. Fuzzier matching
+   ("warhammer 40k" against "Warhammer") is a phase 4 job and belongs on the
+   client, where it can suggest rather than decide. This function only ever
+   collapses things that are unarguably identical. */
+function normalise(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')  // strip accents, so cafe matches the accented spelling
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')  // punctuation and emoji become spaces
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -53,6 +75,9 @@ export class WordCloudRoom {
   ctx: DurableObjectState;
   sql: SqlStorage;
   cached: Cloud | null = null;
+  /* Submission throttle, per person. In memory on purpose: it is worth
+     nothing after a restart and costs nothing to lose. */
+  lastAdd = new Map<number, number>();
 
   constructor(ctx: DurableObjectState) {
     this.ctx = ctx;
@@ -217,7 +242,125 @@ export class WordCloudRoom {
     let msg: any;
     try { msg = JSON.parse(String(raw)); } catch { return; }
     if (msg.t === 'ping') { ws.send(JSON.stringify({ t: 'pong' })); return; }
-    // Intents (add / vote / hide / merge / lock) arrive in phase 2 onward.
+
+    const att = (ws as any).deserializeAttachment?.() || {};
+    const personId: number | null = att.personId ?? null;
+    if (personId === null) return;        // viewers are read only
+
+    const cloud = await this.cloud();
+    if (!cloud) return;
+
+    if (msg.t === 'add') await this.add(ws, cloud, personId, msg);
+    // vote / hide / merge / lock arrive in phase 3 onward.
+  }
+
+  /* Somebody submits an idea.
+
+     The interesting case is not the happy path, it is the duplicate. An exact
+     normalised match does not create a second bubble and does not fail either:
+     it turns into support for the entry that is already there. That is the
+     behaviour the whole project exists for, and the UNIQUE index on norm means
+     the database enforces it rather than trusting this function to remember. */
+  async add(ws: WebSocket, cloud: Cloud, personId: number, msg: any) {
+    const reject = (why: string, message: string) =>
+      ws.send(JSON.stringify({ t: 'reject', why, message }));
+
+    if (cloud.locked) {
+      return reject('locked', 'This cloud is closed for new ideas.');
+    }
+
+    /* Throttle reads here but is only stamped once we are about to write, at
+       the bottom. A rejected submission changes nothing, so charging it to the
+       throttle would mean somebody who trips the filter and immediately fixes
+       their wording gets silently ignored. A genuine double tap still gets
+       nothing back, which is right: their first tap already worked. */
+    const last = this.lastAdd.get(personId) ?? 0;
+    if (Date.now() - last < ADD_EVERY_MS) return;
+
+    const text = String(msg.text ?? '').trim().replace(/\s+/g, ' ').slice(0, cloud.opts.maxChars);
+    if (!text) return;
+
+    const norm = normalise(text);
+    // Nothing but punctuation or emoji. There is no idea in here to record.
+    if (!norm) return reject('empty', 'Type a word or a short phrase.');
+
+    if (cloud.opts.filterOn && screen(text, cloud.blocklist)) {
+      return reject('filter', 'That one will not fly. Try another.');
+    }
+
+    const existing = [...this.sql.exec(
+      'SELECT id, hidden, mergedInto FROM entries WHERE norm = ?', norm
+    )];
+
+    if (existing.length) {
+      const row = existing[0];
+      // The host struck this one. Silently re-adding it would undo a
+      // moderation decision, so say no rather than resurrecting it.
+      if (Number(row.hidden) === 1) {
+        return reject('removed', 'That one was removed by the host.');
+      }
+      // Follow a merge, so supporting a folded entry supports its new home.
+      const target = row.mergedInto === null ? Number(row.id) : Number(row.mergedInto);
+      this.lastAdd.set(personId, Date.now());
+      const added = this.castVote(target, personId);
+      const n = this.voteCount(target);
+      ws.send(JSON.stringify({
+        t: 'dupe',
+        id: target,
+        n,
+        message: added
+          ? 'Already up there, so we added your support instead.'
+          : 'You are already backing that one.',
+      }));
+      if (added) this.broadcast({ t: 'bumps', v: [[target, n]] }, ws);
+      return;
+    }
+
+    // The per person cap counts what you authored, never what you supported.
+    // Tapping other people's bubbles has to stay unlimited: the scanning and
+    // tapping is the part that makes the cloud worth looking at.
+    if (cloud.opts.maxEntries > 0) {
+      const authored = Number(this.sql.exec(
+        'SELECT COUNT(*) AS n FROM entries WHERE authorId = ? AND hidden = 0', personId
+      ).one().n);
+      if (authored >= cloud.opts.maxEntries) {
+        return reject('limit', 'You have added all your ideas. Support other people\'s instead.');
+      }
+    }
+
+    this.lastAdd.set(personId, Date.now());
+    this.sql.exec(
+      'INSERT INTO entries (text, norm, authorId, hidden, mergedInto, createdAt) VALUES (?, ?, ?, 0, NULL, ?)',
+      text, norm, personId, Date.now()
+    );
+    const id = Number(this.sql.exec('SELECT last_insert_rowid() AS id').one().id);
+    // Adding an idea is itself a vote for it, so the count reads as the number
+    // of people who are into this rather than the number who tapped it.
+    this.castVote(id, personId);
+
+    // The author is told separately so the shared frame stays one string for
+    // every other socket. Building a per recipient payload to carry a "mine"
+    // flag would put us back to N serialisations per event.
+    ws.send(JSON.stringify({ t: 'added', id, text, n: 1 }));
+    this.broadcast({ t: 'add', id, text, n: 1 }, ws);
+    this.broadcast({ t: 'here', live: this.liveCount(), people: this.countPeople() });
+  }
+
+  /* Returns true when this was a new vote, false when the person already had
+     one. The primary key on votes is what makes a second tap a no op, so one
+     person can never inflate an entry by holding it down. */
+  castVote(entryId: number, personId: number): boolean {
+    const before = this.voteCount(entryId);
+    this.sql.exec(
+      'INSERT OR IGNORE INTO votes (entryId, personId) VALUES (?, ?)', entryId, personId
+    );
+    return this.voteCount(entryId) > before;
+  }
+
+  voteCount(entryId: number): number {
+    return Number(this.sql.exec(
+      'SELECT COUNT(*) AS n FROM votes WHERE entryId = ?', entryId
+    ).one().n);
   }
 
   async webSocketClose(ws: WebSocket) {
