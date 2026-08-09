@@ -268,10 +268,25 @@ anonymous.
    failing to scan, and that failure would surface in front of a full hall.
    It is loaded only by the display, so no participant's phone pays for it.
 7. **Local persistence.** My clouds, host snapshot, recovery link.
-8. **Load test.** A script opening 80 to 120 sockets and firing random taps for
-   two minutes. Do this for real before orientation day. Discovering the fan out
-   problem in front of the whole staff is the one outcome worth an afternoon to
-   avoid.
+8. **Load test.** Done, against the live deployment rather than localhost, at
+   120 participants and 30 ideas.
+
+   | | |
+   |---|---|
+   | 120 sockets connected | 7.5s, median 229ms each, none refused |
+   | Tap to other phones | median 356ms, p95 380ms |
+   | Busiest realistic minute (223 taps/sec across the room) | 3.7 frames/sec per phone |
+   | Data per phone | 0.52 KB/sec, about 0.3 MB over ten minutes |
+   | 60 phones dropping and returning at once | all back in 0.9s |
+   | Full snapshot at 30 ideas | 1.7 KB |
+   | Totals held by a socket up for the whole run | matched the database exactly, all 30 |
+
+   Coalescing is doing the work it was built for: 223 taps a second would be
+   about 26,000 messages a second without it, and is 444 with it.
+
+   The remaining unknown is the venue. Every one of these sockets came from one
+   machine on one good connection, so this measures the server and not a hall
+   full of phones on shared school wifi.
 
 Phases 1 to 3 are a working demo. Phases 1 to 6 are everything orientation day
 needs.
