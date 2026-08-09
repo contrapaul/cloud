@@ -147,9 +147,23 @@ input::placeholder { color: var(--wc-muted); }
   font-weight: 700;
   letter-spacing: 0.12em;
   font-size: clamp(2rem, 11vw, 3.5rem);
+  /* Tight. At this size the inherited 1.5 line height alone added most of a
+     line of empty space above and below the code. */
+  line-height: 1.05;
   color: var(--wc-accent);
   word-break: break-all;
 }
+
+/* QR, label and code as one tight group. Every bit of slack here pushes the
+   display and recovery options further down the ready page, and those are the
+   things a host needs next. */
+.code-block {
+  text-align: center;
+  padding-bottom: var(--wc-s3);
+}
+.code-block .qr-box { margin-bottom: var(--wc-s3); }
+.code-block p { margin: 0; }
+.code-block .code { margin-top: var(--wc-s1); }
 
 /* A QR on a page that is not the projector. Always on white, whatever the
    surrounding theme: a scanner wants the quiet zone and the contrast the code
@@ -411,6 +425,19 @@ body.managing .field.uniform .bubble.mine {
 }
 .toast.bad { border-color: var(--wc-bad); }
 .toast.good { border-color: var(--wc-good); }
+
+/* ── Site footer ──
+   On every page a person browses: home, new cloud, and the live room. Left off
+   the display view alone, because that screen belongs entirely to the cloud
+   and a credit line is just noise on a projector. */
+.site-foot {
+  text-align: center;
+  padding: var(--wc-s6) var(--wc-s4) var(--wc-s5);
+  color: var(--wc-muted);
+  font-size: 0.8125rem;
+}
+.site-foot a { color: var(--wc-muted); text-decoration: underline; }
+.site-foot a:hover, .site-foot a:focus-visible { color: var(--wc-accent); }
 
 /* ── Connection status ── */
 
