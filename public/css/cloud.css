@@ -1,0 +1,212 @@
+/* Word cloud: layout and components.
+   Mobile first. Almost everyone using this is on a phone in a hall, and the
+   one person who is not is projecting the display view. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--wc-bg);
+  color: var(--wc-text);
+  font-family: var(--wc-body);
+  font-size: 1rem;
+  line-height: 1.5;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+h1, h2, h3 {
+  font-family: var(--wc-display);
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+h1 { font-size: clamp(2rem, 7vw, 3rem); }
+h2 { font-size: clamp(1.35rem, 4.5vw, 1.75rem); }
+
+a { color: var(--wc-accent); }
+
+/* ── Layout ── */
+
+.wrap {
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: var(--wc-s4);
+}
+.narrow { max-width: 32rem; }
+.stack > * + * { margin-top: var(--wc-s4); }
+.center { text-align: center; }
+
+.topbar {
+  border-bottom: 1px solid var(--wc-line);
+  background: var(--wc-bg-2);
+}
+.topbar-inner {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: var(--wc-s3) var(--wc-s4);
+  display: flex;
+  align-items: baseline;
+  gap: var(--wc-s3);
+  flex-wrap: wrap;
+}
+.brand {
+  font-family: var(--wc-display);
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--wc-text);
+  text-decoration: none;
+}
+.brand span { color: var(--wc-accent); }
+
+.panel {
+  background: var(--wc-bg-2);
+  border: 1px solid var(--wc-line);
+  border-radius: var(--wc-r-lg);
+  padding: var(--wc-s5);
+}
+
+.muted { color: var(--wc-muted); }
+.tiny  { font-size: 0.8125rem; }
+.hidden { display: none !important; }
+
+/* ── Controls ── */
+
+label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: var(--wc-s2);
+}
+
+input[type="text"], select {
+  width: 100%;
+  padding: var(--wc-s3);
+  font: inherit;
+  color: var(--wc-text);
+  background: var(--wc-bg-3);
+  border: 1px solid var(--wc-line);
+  border-radius: var(--wc-r);
+}
+input[type="text"]:focus-visible, select:focus-visible {
+  outline: 2px solid var(--wc-accent);
+  outline-offset: 1px;
+}
+input::placeholder { color: var(--wc-muted); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--wc-s2);
+  width: 100%;
+  padding: var(--wc-s3) var(--wc-s4);
+  font: inherit;
+  font-weight: 600;
+  color: var(--wc-bg);
+  background: var(--wc-accent);
+  border: 1px solid transparent;
+  border-radius: var(--wc-r);
+  cursor: pointer;
+  /* Some buttons are anchors, so the link styling has to be undone here. */
+  text-decoration: none;
+  /* Nothing on this page should ever be small enough to miss with a thumb. */
+  min-height: 3rem;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn.secondary {
+  color: var(--wc-text);
+  background: var(--wc-bg-3);
+  border-color: var(--wc-line);
+}
+
+.row { display: flex; gap: var(--wc-s3); align-items: flex-end; }
+.row > * { flex: 1; }
+.row > .shrink { flex: 0 0 auto; width: auto; }
+
+.err {
+  padding: var(--wc-s3) var(--wc-s4);
+  border-radius: var(--wc-r);
+  background: rgba(245, 101, 101, 0.12);
+  border: 1px solid var(--wc-bad);
+  color: var(--wc-text);
+}
+
+/* ── The join code ──
+   Read off a projector from the back of a hall, so it is as big as it can be
+   without wrapping, and monospaced so O and 0 cannot be confused. The code
+   alphabet excludes both anyway, but the shape helps people trust it. */
+
+.code {
+  font-family: var(--wc-num);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  font-size: clamp(2rem, 11vw, 3.5rem);
+  color: var(--wc-accent);
+  word-break: break-all;
+}
+
+.link-box {
+  display: flex;
+  gap: var(--wc-s2);
+  align-items: center;
+  padding: var(--wc-s3);
+  background: var(--wc-bg-3);
+  border: 1px solid var(--wc-line);
+  border-radius: var(--wc-r);
+  font-size: 0.875rem;
+  word-break: break-all;
+}
+
+/* ── Cloud list on the home page ── */
+
+.cloud-list { list-style: none; margin: 0; padding: 0; }
+.cloud-list li + li { margin-top: var(--wc-s2); }
+.cloud-list a {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--wc-s3);
+  align-items: center;
+  padding: var(--wc-s3);
+  background: var(--wc-bg-3);
+  border: 1px solid var(--wc-line);
+  border-radius: var(--wc-r);
+  color: var(--wc-text);
+  text-decoration: none;
+}
+.cloud-list .code-tag {
+  font-family: var(--wc-num);
+  font-size: 0.8125rem;
+  color: var(--wc-accent);
+}
+
+/* ── Connection status ── */
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wc-s2);
+  font-size: 0.8125rem;
+  color: var(--wc-muted);
+}
+.status::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--wc-muted);
+}
+.status.open::before { background: var(--wc-good); }
+.status.reconnecting::before { background: var(--wc-accent-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

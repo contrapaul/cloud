@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud display</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/cloud.css">
+<style>
+  /* The projector view. No chrome, no controls, nothing tappable. The join
+     code stays on screen the whole time so latecomers can join off the wall.
+     Full typography and the QR code arrive in phase 6. */
+  body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  .stage { flex: 1; display: flex; align-items: center; justify-content: center;
+           text-align: center; padding: var(--wc-s6); }
+  .foot { display: flex; align-items: baseline; justify-content: space-between;
+          gap: var(--wc-s4); padding: var(--wc-s4) var(--wc-s6);
+          border-top: 1px solid var(--wc-line); background: var(--wc-bg-2); }
+  .foot .code { font-size: clamp(1.5rem, 4vw, 2.5rem); }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div>
+    <h1 id="question" style="font-size: clamp(2rem, 5vw, 4rem);"></h1>
+    <p class="muted" id="field" style="margin-top: var(--wc-s5);">Connecting.</p>
+  </div>
+</div>
+
+<div class="foot">
+  <div>
+    <div class="muted tiny">Join at <span id="host"></span></div>
+    <div class="code" id="code"></div>
+  </div>
+  <div class="muted" id="counts"></div>
+</div>
+
+<script src="../js/cloud-net.js"></script>
+<script src="../js/display.js"></script>
+</body>
+</html>

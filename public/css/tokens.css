@@ -1,0 +1,104 @@
+/* ============================================================
+   Word cloud: tokens.css
+   Design tokens and @font-face. Loaded before every other sheet.
+
+   FONTS: every face is served from this folder. Nothing is fetched from
+   fonts.googleapis.com or fonts.gstatic.com. Those hosts are unreliable to
+   unreachable in China, and a blocking stylesheet request to a dead host
+   stalls first paint or stops the page loading at all. If you add a face,
+   add the woff2 here. Do not add a link to a CDN.
+     Bespoke Slab   Indian Type Foundry / Fontshare, display
+     Barlow         self hosted copy, never the Google CDN, body
+     JetBrains Mono numbers only: counts, the join code
+   ============================================================ */
+
+@font-face {
+  font-family: 'Bespoke Slab';
+  src: url('../fonts/BespokeSlab-Extrabold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Bespoke Slab';
+  src: url('../fonts/BespokeSlab-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow';
+  src: url('../fonts/Barlow-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow';
+  src: url('../fonts/Barlow-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow';
+  src: url('../fonts/Barlow-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('../fonts/JetBrainsMono-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --wc-display: 'Bespoke Slab', Georgia, serif;
+  --wc-body:    'Barlow', system-ui, -apple-system, sans-serif;
+  --wc-num:     'JetBrains Mono', ui-monospace, monospace;
+
+  /* Deep blue ground so the bubble hues stay legible on a projector in a
+     room that has not been fully darkened. */
+  --wc-bg:    #12151f;
+  --wc-bg-2:  #1a1f2e;
+  --wc-bg-3:  #242b3d;
+  --wc-line:  #333b52;
+  --wc-text:  #eef1f8;
+  --wc-muted: #8f97ad;
+
+  --wc-accent:   #4fd1c5;
+  --wc-accent-2: #f6ad55;
+  --wc-good:     #48bb78;
+  --wc-bad:      #f56565;
+
+  /* Bubble hues, picked by entry id so a cloud looks varied rather than
+     striped. Kept few enough that repeats read as pattern, not error. */
+  --wc-b1: #4fd1c5;
+  --wc-b2: #f6ad55;
+  --wc-b3: #9f7aea;
+  --wc-b4: #4299e1;
+  --wc-b5: #ed64a6;
+  --wc-b6: #68d391;
+
+  --wc-r:    10px;
+  --wc-r-lg: 18px;
+  --wc-r-pill: 999px;
+
+  --wc-s1: 0.25rem;
+  --wc-s2: 0.5rem;
+  --wc-s3: 0.75rem;
+  --wc-s4: 1rem;
+  --wc-s5: 1.5rem;
+  --wc-s6: 2.25rem;
+
+  --wc-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+
+  /* z-index scale. Always use the var, never a raw number. */
+  --z-base:    0;
+  --z-sticky:  100;
+  --z-overlay: 400;
+  --z-toast:   900;
+}

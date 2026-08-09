@@ -1,0 +1,10 @@
+name = "cloud"
+compatibility_date = "2026-07-01"
+pages_build_output_dir = "public"
+
+# The room Worker is deployed separately (npm run deploy:do). Binding it here
+# rather than in the dashboard keeps the config in the repo.
+[[durable_objects.bindings]]
+name = "CLOUD_ROOM"
+class_name = "WordCloudRoom"
+script_name = "cloud-live"

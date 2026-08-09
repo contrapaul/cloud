@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cloud</title>
+<meta name="robots" content="noindex">
+<link rel="preload" href="../fonts/BespokeSlab-Extrabold.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../fonts/Barlow-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/cloud.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="../">Cloud<span>.</span></a>
+    <span class="muted tiny" id="head-title"></span>
+    <span class="status" id="status" style="margin-left: auto;">connecting</span>
+  </div>
+</header>
+
+<main class="wrap stack">
+
+  <div id="err" class="err hidden"></div>
+
+  <div class="center" style="padding-top: var(--wc-s4);">
+    <h1 id="question"></h1>
+    <p class="muted tiny" id="counts"></p>
+  </div>
+
+  <!-- The typing interface and the bubble field land here in phase 2. -->
+  <section class="panel center muted" id="field">
+    Connecting to the cloud.
+  </section>
+
+</main>
+
+<script src="../js/cloud-net.js"></script>
+<script src="../js/room.js"></script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+# Word cloud blocklist. Edit freely, this file is the single source of truth.
+#
+# Format:
+#   foo    whole-word match. "foo" is blocked, "foothill" is not.
+#   *foo   substring match. Blocked anywhere inside a word. Powerful and
+#          blunt, so use it only for terms with no innocent embedding or you
+#          will reinvent the Scunthorpe problem.
+#   # ...  comment.
+#
+# Matching is case-insensitive and already handles, without you listing them:
+#   - leetspeak       f4ck, sh1t, @ss, $hit
+#   - separators      f-u-c-k, f.u.c.k, f u c k   (substring rules only)
+#   - letter runs     fuuuuuck, shiiiit
+#
+# It is applied in two places:
+#   1. as an entry is typed, so the writer sees a warning before submitting
+#   2. at submit, where a flagged entry is rejected and never reaches the cloud
+#
+# The host can also hide any entry after the fact from the host panel, and can
+# switch the whole filter off at creation time.
+#
+# Deliberately kept short and mild. Expand it to suit the room you are in.
+# Deliberately kept short and mild. Expand it to suit the room you are in.
+
+# ── general profanity ──
+fuck
+*fuck
+shit
+*shite
+crap
+piss
+*pissflap
+cunt
+twat
+wank
+*wanker
+bollocks
+bugger
+arse
+*arsehole
+ass
+asshole
+bastard
+bitch
+*bitches
+dick
+dickhead
+prick
+cock
+knob
+*knobhead
+tits
+tit
+boobs
+minge
+fanny
+slag
+slut
+whore
+hoe
+git
+nonce
+tosser
+plonker
+bellend
+
+# ── sexual ──
+porn
+*porno
+sex
+*sexy
+horny
+orgasm
+boner
+erection
+penis
+vagina
+testicle
+scrotum
+anus
+rimjob
+blowjob
+handjob
+masturbate
+*masturb
+dildo
+vibrator
+fetish
+bdsm
+hentai
+milf
+
+# ── slurs and hate terms ──
+# Left mostly empty on purpose: the specific terms you need depend on who is
+# playing and in what language. Add them as whole-word or *substring rules.
+# Anything here is blocked in nicknames as well as answers.
+retard
+retarded
+spastic
+tranny
+faggot
+*fag
+dyke
+paki
+chink
+gook
+kike
+wetback
+coon
+darkie
+
+# ── self-harm and violence ──
+suicide
+rape
+*rapist
+lynch
+genocide
+nazi
+hitler
+isis
+alqaeda
+
+# ── drugs ──
+cocaine
+heroin
+meth
+crackhead
+junkie

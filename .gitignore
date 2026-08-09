@@ -1,0 +1,15 @@
+# Dependencies. 300+ MB, includes platform specific workerd/esbuild binaries.
+node_modules/
+
+# Local dev state. Matches at any depth, so it catches both the Pages dev
+# server's ./.wrangler and the room Worker's workers/cloud-live/.wrangler.
+# Contains the Durable Object SQLite files, so real entries typed during local
+# testing live in here. It should never leave the machine.
+.wrangler/
+
+# Local secrets for `wrangler dev`. Nothing needs one today.
+.dev.vars
+.dev.vars.*
+
+# macOS noise
+.DS_Store

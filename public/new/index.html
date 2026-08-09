@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>New cloud</title>
+<link rel="preload" href="../fonts/BespokeSlab-Extrabold.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../fonts/Barlow-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/cloud.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="../">Cloud<span>.</span></a>
+    <span class="muted tiny">New cloud</span>
+  </div>
+</header>
+
+<main class="wrap narrow stack">
+
+  <div id="err" class="err hidden"></div>
+
+  <!-- Step 1: set it up -->
+  <section id="setup" class="stack">
+    <h1>New cloud</h1>
+
+    <section class="panel stack">
+      <div>
+        <label for="title">Title</label>
+        <input type="text" id="title" maxlength="80" placeholder="Staff orientation 2026">
+      </div>
+      <div>
+        <label for="question">Question everyone answers</label>
+        <input type="text" id="question" maxlength="140"
+               value="What are your hobbies or interests?">
+      </div>
+    </section>
+
+    <details class="panel">
+      <summary class="muted tiny" style="cursor: pointer;">Options</summary>
+      <div class="stack" style="padding-top: var(--wc-s4);">
+        <div>
+          <label for="maxEntries">Entries per person</label>
+          <select id="maxEntries">
+            <option value="0" selected>Unlimited</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+          </select>
+          <p class="muted tiny" style="margin-bottom: 0;">Unlimited is a good
+            default. A cap makes people agonise over their best answer instead
+            of just filling the cloud.</p>
+        </div>
+        <div>
+          <label for="maxChars">Longest entry</label>
+          <select id="maxChars">
+            <option value="25">25 characters, one or two words</option>
+            <option value="40" selected>40 characters</option>
+            <option value="60">60 characters, short phrases</option>
+          </select>
+        </div>
+        <div>
+          <label for="voting">Tapping to support an entry</label>
+          <select id="voting">
+            <option value="on" selected>On</option>
+            <option value="off">Off, collect answers only</option>
+          </select>
+        </div>
+        <div>
+          <label for="filterOn">Language filter</label>
+          <select id="filterOn">
+            <option value="on" selected>On</option>
+            <option value="off">Off</option>
+          </select>
+        </div>
+      </div>
+    </details>
+
+    <button type="button" class="btn" id="create">Create the cloud</button>
+    <p class="muted tiny center">Everyone who joins stays anonymous. Nothing
+      asks for a name.</p>
+  </section>
+
+  <!-- Step 2: share it -->
+  <section id="share" class="stack hidden">
+    <h1>Ready</h1>
+
+    <section class="panel stack center">
+      <p class="muted tiny" style="margin: 0;">Join code</p>
+      <div class="code" id="out-code"></div>
+    </section>
+
+    <section class="panel stack">
+      <label>Invite link</label>
+      <div class="link-box"><span id="out-link"></span></div>
+      <button type="button" class="btn secondary" id="copy">Copy the link</button>
+    </section>
+
+    <a class="btn" id="go-display" href="#">Open the display view</a>
+    <a class="btn secondary" id="go-room" href="#">Open the cloud on this device</a>
+
+    <section class="panel stack">
+      <h2>Keep control of this cloud</h2>
+      <p class="muted tiny">Being the host lives in this browser. If you clear
+        your site data or move to another device you lose the ability to hide,
+        merge and export. Bookmark this recovery link to carry it with you, and
+        do not share it.</p>
+      <div class="link-box"><span id="out-host"></span></div>
+      <button type="button" class="btn secondary" id="copy-host">Copy the recovery link</button>
+    </section>
+  </section>
+
+</main>
+
+<script src="../js/cloud-net.js"></script>
+<script src="../js/new.js"></script>
+</body>
+</html>

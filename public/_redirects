@@ -1,0 +1,6 @@
+# The invite link people are given is /c/ABCDEF, because that is short enough
+# to read off a projector and survives being pasted into a chat app. The page
+# itself reads the code from ?k=, so rewrite rather than redirect: the address
+# bar keeps the clean form.
+/c/:code        /c/?k=:code        200
+/display/:code  /display/?k=:code  200

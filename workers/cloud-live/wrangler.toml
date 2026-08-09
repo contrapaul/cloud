@@ -1,0 +1,12 @@
+name = "cloud-live"
+main = "src/index.ts"
+compatibility_date = "2026-07-01"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["WordCloudRoom"]
+
+[durable_objects]
+bindings = [
+  { name = "CLOUD_ROOM", class_name = "WordCloudRoom" }
+]
