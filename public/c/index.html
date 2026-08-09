@@ -45,9 +45,41 @@
     <div id="toast" class="toast hidden"></div>
   </section>
 
+  <div id="manage-bar" class="manage-bar" hidden>
+    <p id="manage-say" class="tiny"></p>
+    <div class="row" id="manage-actions">
+      <button type="button" class="btn secondary" id="do-hide">Hide it</button>
+      <button type="button" class="btn secondary" id="do-merge">Fold into...</button>
+      <button type="button" class="btn secondary" id="do-cancel">Cancel</button>
+    </div>
+  </div>
+
   <p class="tiny muted" id="tap-hint" hidden style="margin: 0;">Tap everything you are into as well</p>
   <section id="field" class="field uniform" aria-live="polite"></section>
   <p class="field-empty" id="field-empty">Connecting to the cloud.</p>
+
+  <!-- Host only. Everything below is gated on holding the host token. -->
+  <section id="host-panel" class="panel stack" hidden>
+    <h2>Host controls</h2>
+
+    <button type="button" class="btn secondary" id="toggle-manage">Tidy up the cloud</button>
+    <p class="tiny muted" style="margin: 0;">While tidying, tapping an idea
+      selects it instead of supporting it, so you can hide it or fold it into
+      another one.</p>
+
+    <button type="button" class="btn secondary" id="toggle-lock">Close the cloud to new ideas</button>
+
+    <div class="row">
+      <button type="button" class="btn secondary" id="export-csv">Export CSV</button>
+      <button type="button" class="btn secondary" id="export-json">Export JSON</button>
+    </div>
+
+    <div id="hidden-box" hidden>
+      <label>Hidden, visible only to you</label>
+      <div class="field uniform" id="hidden-field"></div>
+      <p class="tiny muted" style="margin: var(--wc-s2) 0 0;">Tap one to put it back.</p>
+    </div>
+  </section>
 
 </main>
 

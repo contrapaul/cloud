@@ -119,6 +119,12 @@
     }
   };
 
+  /* The element for an entry, so a caller can decorate it (the host's merge
+     selection) without this module needing to know what the decoration means. */
+  Field.prototype.node = function (id) {
+    return this.nodes.get(id);
+  };
+
   /* A brief pop, so growth is noticed on a field somebody is scanning. */
   Field.prototype.pop = function (id) {
     const node = this.nodes.get(id);

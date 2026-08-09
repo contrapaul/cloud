@@ -189,6 +189,23 @@ export class WordCloudRoom {
       return json({ ok: true, personId: id, isHost: token === cloud.hostToken });
     }
 
+    /* The results, for export and for the local snapshot. Host only: the
+       tallies are public inside the room anyway, but this is the shape people
+       keep and quote afterwards, so it stays behind the one credential. */
+    if (path.endsWith('/results') && request.method === 'POST') {
+      if (!token || token !== cloud.hostToken) {
+        return json({ error: 'Only the host can export this cloud.' }, 403);
+      }
+      return json({
+        title: cloud.title,
+        question: cloud.question,
+        code: cloud.code,
+        people: this.countPeople(),
+        exportedAt: Date.now(),
+        results: this.results(),
+      });
+    }
+
     /* Meta for the join screen, before a socket is opened. Nothing here is
        secret: it is what somebody typing a code needs in order to decide
        whether they are in the right place. */
@@ -280,7 +297,62 @@ export class WordCloudRoom {
 
     if (msg.t === 'add') await this.add(ws, cloud, personId, msg);
     else if (msg.t === 'vote') this.vote(ws, cloud, personId, msg);
-    // hide / merge / lock arrive in phase 5.
+    else if (att.isHost) await this.hostIntent(cloud, msg);
+  }
+
+  /* Moderation. Only reachable when the socket was opened with the host token,
+     which the Pages Function is the only thing able to set. */
+  async hostIntent(cloud: Cloud, msg: any) {
+    if (msg.t === 'hide' || msg.t === 'unhide') {
+      const id = Number(msg.id);
+      const row = [...this.sql.exec('SELECT id, text FROM entries WHERE id = ?', id)];
+      if (!row.length) return;
+      this.sql.exec('UPDATE entries SET hidden = ? WHERE id = ?', msg.t === 'hide' ? 1 : 0, id);
+      /* Sent on its own rather than through the coalescing buffer. Taking
+         something off a projector in front of a hall is the one action where
+         a 150ms wait is the wrong trade, and it is rare enough that it will
+         never be the thing that floods the room. */
+      if (msg.t === 'hide') this.broadcast({ t: 'hide', id });
+      else this.broadcast({ t: 'unhide', id, text: String(row[0].text), n: this.voteCount(id) });
+      return;
+    }
+
+    if (msg.t === 'lock') {
+      cloud.locked = !!msg.locked;
+      await this.saveCloud(cloud);
+      this.broadcast({ t: 'lock', locked: cloud.locked });
+      return;
+    }
+
+    /* Fold one idea into another.
+
+       Votes are unioned by person, never summed, so somebody who had tapped
+       both ends up counted once. Summing would inflate exactly the entries a
+       host merges, which are the ones most likely to be quoted afterwards. */
+    if (msg.t === 'merge') {
+      const from = Number(msg.from);
+      const into = Number(msg.into);
+      if (!Number.isInteger(from) || !Number.isInteger(into) || from === into) return;
+
+      const live = (id: number) => [...this.sql.exec(
+        'SELECT id FROM entries WHERE id = ? AND hidden = 0 AND mergedInto IS NULL', id
+      )].length > 0;
+      if (!live(from) || !live(into)) return;
+
+      this.sql.exec(
+        'INSERT OR IGNORE INTO votes (entryId, personId) SELECT ?, personId FROM votes WHERE entryId = ?',
+        into, from
+      );
+      this.sql.exec('DELETE FROM votes WHERE entryId = ?', from);
+      // The second clause re-points anything already folded into `from`, so a
+      // chain of merges cannot strand an entry pointing at a dead parent.
+      this.sql.exec(
+        'UPDATE entries SET mergedInto = ? WHERE id = ? OR mergedInto = ?', into, from, from
+      );
+
+      this.broadcast({ t: 'merge', from, into, n: this.voteCount(into) });
+      return;
+    }
   }
 
   /* Tapping a bubble to say "I am into that too".
@@ -497,6 +569,19 @@ export class WordCloudRoom {
       ORDER BY n DESC, e.id ASC
     `);
 
+    /* The host needs to see what they struck in order to put it back. Nobody
+       else is told hidden entries exist at all, which is the point of hiding
+       them. This is the only field that differs between recipients beyond
+       "mine", so the snapshot stays cheap to build. */
+    const hiddenList = !isHost ? [] : [...this.sql.exec(`
+      SELECT e.id, e.text, COUNT(v.personId) AS n
+      FROM entries e
+      LEFT JOIN votes v ON v.entryId = e.id
+      WHERE e.hidden = 1 AND e.mergedInto IS NULL
+      GROUP BY e.id
+      ORDER BY e.id ASC
+    `)].map((r) => ({ id: Number(r.id), text: String(r.text), n: Number(r.n) }));
+
     return {
       t: 'state',
       code: cloud.code,
@@ -513,7 +598,26 @@ export class WordCloudRoom {
         n: Number(r.n),
         mine: mine.has(Number(r.id)),
       })),
+      hiddenEntries: hiddenList,
     };
+  }
+
+  /* Every surviving idea with the number of DISTINCT people behind it.
+     Also what the host's device saves locally, so the record outlives the
+     30 day server retention. */
+  results(): { text: string; supporters: number; addedAt: number }[] {
+    return [...this.sql.exec(`
+      SELECT e.text, e.createdAt, COUNT(v.personId) AS n
+      FROM entries e
+      LEFT JOIN votes v ON v.entryId = e.id
+      WHERE e.hidden = 0 AND e.mergedInto IS NULL
+      GROUP BY e.id
+      ORDER BY n DESC, e.createdAt ASC
+    `)].map((r) => ({
+      text: String(r.text),
+      supporters: Number(r.n),
+      addedAt: Number(r.createdAt),
+    }));
   }
 
   /* Ground truth for who is here is the set of open sockets. A persisted

@@ -316,6 +316,38 @@ button.bubble:active { transform: scale(0.96); }
   padding: var(--wc-s3) 0;
 }
 
+/* ── Host tidying ── */
+
+.manage-bar {
+  padding: var(--wc-s3);
+  border-radius: var(--wc-r);
+  background: var(--wc-bg-3);
+  border: 1px solid var(--wc-accent);
+}
+.manage-bar p { margin: 0 0 var(--wc-s2); color: var(--wc-accent); }
+/* Three actions have to fit one phone width without any of them wrapping to
+   a second line, which reads as a broken layout mid moderation. */
+.manage-bar .btn {
+  font-size: 0.9rem;
+  padding-inline: var(--wc-s2);
+  white-space: nowrap;
+}
+
+/* The idea the host has picked. A dashed ring rather than a colour change, so
+   it cannot be confused with the filled "you back this" state. */
+.bubble.picked {
+  outline: 3px dashed var(--wc-text);
+  outline-offset: 3px;
+}
+
+/* While tidying, nothing in the field is a vote, so the filled state would
+   only mislead. */
+body.managing .field.uniform .bubble.mine {
+  color: var(--hue);
+  background: color-mix(in srgb, var(--hue) 14%, transparent);
+  border-color: color-mix(in srgb, var(--hue) 45%, transparent);
+}
+
 /* The "did you mean" strip, between the input and the tap field. Tinted so it
    reads as a prompt rather than as more of the cloud. */
 .suggest {

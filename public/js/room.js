@@ -43,12 +43,25 @@
   const mini = Bubbles.field($('mini'), { order: 'support' });
   const hints = Bubbles.field($('suggest-field'), { order: 'support', onTap: joinInstead });
 
+  const hiddenEntries = new Map();
+  const hiddenField = Bubbles.field($('hidden-field'), { order: 'stable', onTap: unhide });
+
   let voting = true;
+  let votingOption = true;
+  let seated = false;
+  let locked = false;
+  let isHost = false;
+  let manage = false;
+  let selected = null;      // entry id the host has picked
+  let mergeFrom = null;     // set once they have chosen to merge it somewhere
   let people = 0;
   let live = 0;
   let toastTimer = null;
 
+  const cloudInfo = { title: '', question: '' };
+
   function draw() {
+    scheduleSave();
     const list = [...entries.values()];
     field.render(list);
     mini.render(list);
@@ -63,6 +76,9 @@
      redraw your own tap is exactly what would make this feel sluggish, and
      tapping fast through a long field is meant to be the fun part. */
   function tap(id) {
+    // While the host is tidying, the same bubbles mean something else.
+    if (manage) return select(id);
+
     const e = entries.get(id);
     if (!e || !voting) return;
     e.mine = !e.mine;
@@ -154,18 +170,30 @@
     document.title = msg.title;
     $('head-title').textContent = msg.title;
     $('question').textContent = msg.question;
+    cloudInfo.title = msg.title;
+    cloudInfo.question = msg.question;
     people = msg.people;
     live = msg.live;
-    voting = msg.opts.voting && !msg.locked;
+    votingOption = msg.opts.voting;
+    seated = msg.you.seated;
+    locked = msg.locked;
+    voting = votingOption && !locked;
+    isHost = msg.you.isHost;
 
     entries.clear();
     for (const e of msg.entries) entries.set(e.id, e);
+    hiddenEntries.clear();
+    for (const e of msg.hiddenEntries || []) hiddenEntries.set(e.id, e);
 
     $('entry').maxLength = msg.opts.maxChars;
-    $('compose').hidden = !msg.you.seated || msg.locked;
-    if (msg.locked) toast('This cloud is closed for new ideas.', '');
+    $('compose').hidden = !seated || locked;
+    $('host-panel').hidden = !isHost;
+    $('toggle-lock').textContent = locked ? 'Reopen the cloud' : 'Close the cloud to new ideas';
+    if (locked) toast('This cloud is closed for new ideas.', '');
+    if (!isHost && manage) setManage(false);
 
     draw();
+    drawHidden();
     counts();
 
     // Recorded here rather than at join, so the local list only ever holds
@@ -240,7 +268,212 @@
       toast(msg.message, 'bad');
       return;
     }
+
+    if (msg.t === 'hide') {
+      const e = entries.get(msg.id);
+      if (e) {
+        entries.delete(msg.id);
+        // Only the host is told hidden ideas still exist, so only the host
+        // has anywhere to put it.
+        if (isHost) { hiddenEntries.set(msg.id, e); drawHidden(); }
+        if (selected === msg.id) clearSelection();
+        draw();
+        counts();
+      }
+      return;
+    }
+
+    if (msg.t === 'unhide') {
+      hiddenEntries.delete(msg.id);
+      entries.set(msg.id, { id: msg.id, text: msg.text, n: msg.n, mine: false });
+      drawHidden();
+      draw();
+      counts();
+      return;
+    }
+
+    if (msg.t === 'merge') {
+      // Read before deleting: backing either side before the merge means
+      // backing the survivor after it. The server unioned the voters, and this
+      // mirrors that locally so nobody has to reload to see it.
+      const from = entries.get(msg.from);
+      const wasMine = !!(from && from.mine);
+      entries.delete(msg.from);
+      const into = entries.get(msg.into);
+      if (into) {
+        into.n = msg.n;
+        if (wasMine) into.mine = true;
+      }
+      if (selected === msg.from || mergeFrom === msg.from) clearSelection();
+      draw();
+      counts();
+      return;
+    }
+
+    if (msg.t === 'lock') {
+      setLocked(msg.locked);
+      toast(msg.locked
+        ? 'The host has closed this cloud.'
+        : 'The cloud is open again.', '');
+      return;
+    }
   }
+
+  /* ── Host controls ── */
+
+  function paint(id, on) {
+    const node = field.node(id);
+    if (node) node.classList.toggle('picked', on);
+  }
+
+  function clearSelection() {
+    if (selected !== null) paint(selected, false);
+    selected = null;
+    mergeFrom = null;
+    $('manage-bar').hidden = true;
+    $('manage-actions').hidden = false;
+    $('do-hide').hidden = false;
+    $('do-merge').hidden = false;
+  }
+
+  function select(id) {
+    const e = entries.get(id);
+    if (!e) return;
+
+    // Second half of a merge: the first pick folds into this one.
+    if (mergeFrom !== null && mergeFrom !== id) {
+      const from = entries.get(mergeFrom);
+      CloudNet.send({ t: 'merge', from: mergeFrom, into: id });
+      toast('Folded "' + (from ? from.text : 'that') + '" into "' + e.text + '".', 'good');
+      clearSelection();
+      return;
+    }
+
+    if (selected !== null) paint(selected, false);
+    selected = id;
+    // Tapping the same idea again backs out of a half started fold, so the
+    // full set of actions has to come back with it.
+    mergeFrom = null;
+    paint(id, true);
+    $('manage-say').textContent = 'Selected "' + e.text + '"';
+    $('manage-actions').hidden = false;
+    $('do-hide').hidden = false;
+    $('do-merge').hidden = false;
+    $('manage-bar').hidden = false;
+  }
+
+  function setManage(on) {
+    manage = on;
+    clearSelection();
+    document.body.classList.toggle('managing', on);
+    $('toggle-manage').textContent = on ? 'Done tidying' : 'Tidy up the cloud';
+    $('tap-hint').textContent = on
+      ? 'Tap an idea to hide it or fold it into another'
+      : 'Tap everything you are into as well';
+  }
+
+  function unhide(id) {
+    CloudNet.send({ t: 'unhide', id: id });
+  }
+
+  function drawHidden() {
+    hiddenField.render([...hiddenEntries.values()]);
+    $('hidden-box').hidden = hiddenEntries.size === 0;
+  }
+
+  function setLocked(on) {
+    locked = on;
+    voting = votingOption && !on;
+    $('compose').hidden = on || !seated;
+    $('toggle-lock').textContent = on ? 'Reopen the cloud' : 'Close the cloud to new ideas';
+    draw();
+  }
+
+  /* The export is fetched rather than linked, so the host token travels in a
+     POST body instead of a URL that would land in history and in logs. */
+  async function download(format) {
+    try {
+      const res = await fetch('/api/' + code + '/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: CloudNet.me().token, format: format }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(function () { return {}; });
+        throw new Error(err.error || 'Export failed (' + res.status + ')');
+      }
+      const blob = await res.blob();
+      const name = (res.headers.get('Content-Disposition') || '').match(/filename="([^"]+)"/);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name ? name[1] : 'cloud.' + format;
+      document.body.append(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast('Exported ' + format.toUpperCase() + '.', 'good');
+    } catch (err) {
+      toast(err.message, 'bad');
+    }
+  }
+
+  /* The server copy is deleted after 30 days, so the host's own device keeps
+     the record. Saved continuously rather than behind a button, because the
+     one time somebody needs this is the time they forgot to press it.
+
+     Debounced because it has to follow every change, including merges and
+     hides, and a cloud mid burst redraws several times a second. Writing the
+     whole record on each of those would be wasted work, but writing it only on
+     connect would leave the saved copy describing a cloud that no longer
+     exists: pre merge, pre moderation, and wrong in exactly the places the
+     host has just corrected. */
+  let saveTimer = null;
+  function scheduleSave() {
+    if (!isHost || saveTimer !== null) return;
+    saveTimer = setTimeout(function () {
+      saveTimer = null;
+      try {
+        localStorage.setItem('wc:snap:' + code, JSON.stringify({
+          code: code,
+          title: cloudInfo.title,
+          question: cloudInfo.question,
+          people: people,
+          savedAt: Date.now(),
+          results: [...entries.values()]
+            .map(function (e) { return { text: e.text, supporters: e.n }; })
+            .sort(function (x, y) { return y.supporters - x.supporters; }),
+        }));
+      } catch (err) {
+        // A full quota must never take the live cloud down with it.
+      }
+    }, 1000);
+  }
+
+  $('toggle-manage').addEventListener('click', function () { setManage(!manage); });
+  $('toggle-lock').addEventListener('click', function () {
+    CloudNet.send({ t: 'lock', locked: !locked });
+  });
+  $('do-cancel').addEventListener('click', clearSelection);
+  $('do-hide').addEventListener('click', function () {
+    if (selected === null) return;
+    CloudNet.send({ t: 'hide', id: selected });
+    clearSelection();
+  });
+  $('do-merge').addEventListener('click', function () {
+    if (selected === null) return;
+    mergeFrom = selected;
+    const e = entries.get(mergeFrom);
+    $('manage-say').textContent = 'Now tap the idea to fold "' + (e ? e.text : '') + '" into';
+    $('manage-actions').hidden = true;
+    // Cancel has to stay reachable, or a half finished merge traps the host.
+    $('do-cancel').hidden = false;
+    $('manage-actions').hidden = false;
+    $('do-hide').hidden = true;
+    $('do-merge').hidden = true;
+  });
+  $('export-csv').addEventListener('click', function () { download('csv'); });
+  $('export-json').addEventListener('click', function () { download('json'); });
 
   function onStatus(s) {
     $('status').className = 'status ' + s;
