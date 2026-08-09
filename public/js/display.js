@@ -200,19 +200,30 @@
      cloud takes whatever height is left, so the fit has to run again. */
 
   const BIG = 'wc:display-big';
-  function setBig(on) {
+  function setBig(on, remember) {
     document.body.classList.toggle('big', on);
     // Labelled with what pressing it will do, matching the skin toggle.
     $('big').textContent = on ? 'Normal cloud' : 'Big cloud';
     $('big').setAttribute('aria-pressed', String(on));
-    try { localStorage.setItem(BIG, on ? 'big' : 'normal'); } catch (e) { /* private mode */ }
+    // Only a deliberate press is recorded, so applying the default at load
+    // cannot quietly erase a choice made while the control was available.
+    if (remember) {
+      try { localStorage.setItem(BIG, on ? 'big' : 'normal'); } catch (e) { /* private mode */ }
+    }
     scheduleFit();
   }
+  /* The remembered choice is only honoured while the control is actually
+     available. Without this, hiding the button would strand anybody who had
+     already switched the mode on: it would still be applied on every visit
+     with nothing on screen to turn it off again. Unhiding the button restores
+     their preference. */
   let big = false;
-  try { big = localStorage.getItem(BIG) === 'big'; } catch (e) { /* private mode */ }
-  setBig(big);
+  if (!$('big').hidden) {
+    try { big = localStorage.getItem(BIG) === 'big'; } catch (e) { /* private mode */ }
+  }
+  setBig(big, false);
   $('big').addEventListener('click', function () {
-    setBig(!document.body.classList.contains('big'));
+    setBig(!document.body.classList.contains('big'), true);
   });
 
   /* ── Live ── */

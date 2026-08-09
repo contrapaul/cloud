@@ -91,6 +91,10 @@
     <h1>Ready</h1>
 
     <section class="panel stack center">
+      <!-- Scannable straight off the creator's own screen, so the first few
+           people can join by pointing a phone at it before anything is put on
+           a projector. -->
+      <div class="qr-box" id="out-qr"></div>
       <p class="muted tiny" style="margin: 0;">Join code</p>
       <div class="code" id="out-code"></div>
     </section>
@@ -117,6 +121,7 @@
 
 </main>
 
+<script src="../js/vendor/qrcode.js"></script>
 <script src="../js/cloud-net.js"></script>
 <script src="../js/new.js"></script>
 </body>

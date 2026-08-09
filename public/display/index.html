@@ -78,11 +78,7 @@
     border-top: 1px solid var(--wc-line);
     background: var(--wc-bg-2);
   }
-  /* No min-width:0 here on purpose. The column has to grow to whatever the
-     join details need, because a wrapped join code is unreadable and a
-     wrapped one at big cloud size is nonsense. */
-  .foot-join { display: flex; align-items: center; gap: 1.5vw; }
-  .foot-mid { justify-self: center; }
+  .foot-mid { justify-self: center; text-align: center; }
   .foot-mid button {
     background: transparent; border: 1px solid var(--wc-line); color: var(--wc-muted);
     border-radius: var(--wc-r); padding: 0.4rem 0.8rem;
@@ -90,15 +86,23 @@
   }
   .foot-mid button:hover, .foot-mid button:focus-visible { opacity: 1; }
 
-  .foot .qr {
-    width: clamp(64px, 9vh, 132px);
-    height: clamp(64px, 9vh, 132px);
+  /* Pinned to the bottom left corner and sized to be scannable from a seat,
+     which means it is far too tall for the bar and grows up over the cloud
+     instead. Out of flow on purpose: the stage is measured and fitted without
+     it, so enlarging the QR never shrinks the cloud. A word passing behind it
+     is an acceptable trade for a code people can actually scan. */
+  .qr {
+    position: fixed;
+    left: 3vw;
+    bottom: 1.2vh;
+    z-index: var(--z-sticky);
+    width: clamp(160px, 22.5vh, 330px);
+    height: clamp(160px, 22.5vh, 330px);
     background: #fff;
-    padding: 4px;
-    border-radius: 6px;
-    flex: 0 0 auto;
+    padding: 6px;
+    border-radius: 8px;
   }
-  .foot .qr svg { display: block; width: 100%; height: 100%; }
+  .qr svg { display: block; width: 100%; height: 100%; }
   .join-label { font-size: clamp(0.75rem, 1.2vw, 1.1rem); color: var(--wc-muted); white-space: nowrap; }
   .foot .code { font-size: clamp(1.5rem, 3.6vw, 3.25rem); line-height: 1.1; white-space: nowrap; }
 
@@ -129,7 +133,8 @@
      bar always fits whatever it is shown on, and on a 1920x1080 projector it
      lands on the intended multiples: QR about 237px against 97px normally,
      the code about 118px against 52px, the counts about 65px against 24px. */
-  body.big .foot .qr { width: min(22.5vh, 15vw); height: min(22.5vh, 15vw); }
+  /* The QR follows the bar to the top of the screen in this mode. */
+  body.big .qr { top: 2vh; bottom: auto; width: min(25vh, 16vw); height: min(25vh, 16vw); }
   body.big .join-label { font-size: min(2.4vw, 3vh); }
   body.big .foot .code { font-size: min(9vw, 12vh); }
   body.big .tally { font-size: min(5vw, 6.8vh); }
@@ -172,17 +177,20 @@
   </div>
 </div>
 
+<!-- Outside the bar and out of flow, so it can grow up over the cloud without
+     changing any layout or the height the cloud is fitted into. -->
+<div class="qr" id="qr"></div>
+
 <div class="foot" id="foot">
-  <div class="foot-join">
-    <div class="qr" id="qr"></div>
-    <div>
-      <div class="join-label">Join at <span id="host"></span></div>
-      <div class="code" id="code"></div>
-    </div>
-  </div>
+  <div></div>
 
   <div class="foot-mid">
-    <button type="button" id="big">Big cloud</button>
+    <div class="join-label">Join at <span id="host"></span></div>
+    <div class="code" id="code"></div>
+    <!-- Big cloud is switched off for now. The mode itself is intact, in the
+         CSS below and in display.js: drop the hidden attribute to bring it
+         back. -->
+    <button type="button" id="big" hidden>Big cloud</button>
   </div>
 
   <div class="tally">

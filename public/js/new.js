@@ -52,6 +52,18 @@
 
       const base = location.origin;
       const link = base + '/c/' + res.code;
+
+      try {
+        const qr = qrcode(0, 'M');       // 0 picks the smallest version that fits
+        qr.addData(link);
+        qr.make();
+        $('out-qr').innerHTML = qr.createSvgTag({ cellSize: 1, margin: 1, scalable: true });
+      } catch (err) {
+        // The code and the link below it are both readable on their own, so a
+        // missing QR is not worth an error message.
+        $('out-qr').remove();
+      }
+
       $('out-code').textContent = res.code;
       $('out-link').textContent = link;
       $('out-host').textContent = base + '/c/?k=' + res.code

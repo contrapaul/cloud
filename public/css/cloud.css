@@ -151,6 +151,19 @@ input::placeholder { color: var(--wc-muted); }
   word-break: break-all;
 }
 
+/* A QR on a page that is not the projector. Always on white, whatever the
+   surrounding theme: a scanner wants the quiet zone and the contrast the code
+   was generated with, not a tinted version of it. */
+.qr-box {
+  width: min(62vw, 240px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  background: #fff;
+  padding: 8px;
+  border-radius: var(--wc-r);
+}
+.qr-box svg { display: block; width: 100%; height: 100%; }
+
 .link-box {
   display: flex;
   gap: var(--wc-s2);
