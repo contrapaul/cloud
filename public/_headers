@@ -1,0 +1,28 @@
+# Cache rules.
+#
+# The site's own CSS and JS must never be served from a stale browser cache.
+# The default was four hours, which meant a returning visitor kept running the
+# previous build: a footer would render unstyled because the rule that styles
+# it had not arrived yet, and worse, a fix deployed an hour before an event
+# would not reach anyone who had opened the page that morning.
+#
+# max-age=0 with must-revalidate does not mean "download every time". The
+# browser still keeps the file and asks whether it changed, and the answer is
+# normally a 304 of a few hundred bytes. That is the right trade for a site
+# where a hall full of people all load the same build at once.
+/css/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/js/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Fonts are the opposite case: large, and they never change without being
+# given a new filename. Cache them hard so a phone fetches them once.
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The HTML is what points at everything else, so it has to be fresh too.
+/
+  Cache-Control: public, max-age=0, must-revalidate
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate

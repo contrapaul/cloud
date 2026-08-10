@@ -430,6 +430,23 @@ body.managing .field.uniform .bubble.mine {
    On every page a person browses: home, new cloud, and the live room. Left off
    the display view alone, because that screen belongs entirely to the cloud
    and a credit line is just noise on a projector. */
+/* Pages carrying the footer become a column that fills the window, so the
+   footer rests on the bottom of the screen when there is little content and
+   is pushed below the fold by a long cloud. In normal flow it simply stopped
+   wherever the content ended, which on the home page left it floating in the
+   middle of an empty screen.
+
+   Applied through a class rather than :has(), so it does not depend on
+   selector support on whatever phone a member of staff happens to own. */
+body.has-foot {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+body.has-foot > main { flex: 1 0 auto; }
+body.has-foot > .site-foot { margin-top: auto; }
+
 .site-foot {
   text-align: center;
   padding: var(--wc-s6) var(--wc-s4) var(--wc-s5);
