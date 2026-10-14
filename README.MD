@@ -52,3 +52,12 @@ where it came from.
 
 **No em dash characters.** Not in the UI, not in comments, not in docs. Use a
 comma, a full stop or a colon.
+
+## License
+
+The code is [MIT](LICENSE). Third party files keep their own licenses and are
+not covered by it:
+
+- Barlow and JetBrains Mono (`public/fonts/`): SIL Open Font License 1.1
+- Bespoke Slab (`public/fonts/`): Indian Type Foundry / Fontshare terms
+- qrcode-generator (`public/js/vendor/qrcode.js`): MIT, Kazuhiko Arase
